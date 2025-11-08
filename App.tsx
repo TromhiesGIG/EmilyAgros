@@ -1,20 +1,113 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+// App.tsx - UPDATED with MainTabNavigator
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { AuthProvider, useAuth } from './src/providers/AuthProvider';
+import SplashScreen from './src/screens/splash/SplashScreen';
+import { OnboardingScreen } from './src/screens/onboarding/OnboardingScreen';
+import { AuthWelcomeScreen } from './src/screens/auth/AuthWelcomeScreen';
+import { CreateAccountWelcomeScreen } from './src/screens/auth/CreateAccountWelcomeScreen';
+import { NameCollectionScreen } from './src/screens/auth/NameCollectionScreen';
+import { AccountSuccessScreen } from './src/screens/auth/AccountSuccessScreen';
+import { PhoneVerifyScreen } from './src/screens/auth/PhoneVerifyScreen';
+import { MainTabNavigator } from './src/navigation/MainTabNavigator'; // NEW
+
+export type RootStackParamList = {
+  Splash: undefined;
+  Onboarding: undefined;
+  AuthWelcome: undefined;
+  SignIn: undefined;
+  CreateAccountWelcome: undefined;
+  CreateAccountForm: undefined;
+  NameCollection: {
+    email: string;
+    password: string;
+    keepLoggedIn?: boolean;
+  };
+  AccountSuccess: undefined;
+  MainApp: undefined;
+  PhoneVerify: { phoneNumber: string };
+};
+
+const Stack = createStackNavigator<RootStackParamList>();
+
+const Navigation = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#008102" />
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        {user ? (
+          // CHANGED: Use MainTabNavigator instead of MainAppScreen
+          <Stack.Screen name="MainApp" component={MainTabNavigator} />
+        ) : (
+          <>
+            <Stack.Screen name="Splash" component={SplashScreen} />
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            <Stack.Screen name="AuthWelcome" component={AuthWelcomeScreen} />
+            <Stack.Screen
+              name="CreateAccountWelcome"
+              component={CreateAccountWelcomeScreen}
+              options={{
+                cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+                transitionSpec: {
+                  open: {
+                    animation: 'timing',
+                    config: {
+                      duration: 600,
+                    },
+                  },
+                  close: {
+                    animation: 'timing',
+                    config: {
+                      duration: 600,
+                    },
+                  },
+                },
+              }}
+            />
+            <Stack.Screen
+              name="NameCollection"
+              component={NameCollectionScreen}
+              options={{
+                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+              }}
+            />
+            <Stack.Screen name="AccountSuccess" component={AccountSuccessScreen} />
+            <Stack.Screen name="PhoneVerify" component={PhoneVerifyScreen} />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+};
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <AuthProvider>
+      <Navigation />
+    </AuthProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loadingContainer: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
 });
