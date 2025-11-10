@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, Search, PlusCircle, MessageSquare, MoreHorizontal } from 'lucide-react-native';
 import { MainTabParamList } from './types';
 import { HomeStackNavigator } from './HomeStackNavigator';
+import { SellStackNavigator } from './SellStackNavigator';
 import { PlaceholderScreen } from '../screens/main/PlaceholderScreen';
 import { ProfileScreen } from '../screens/main/ProfileScreen';
 
@@ -53,18 +54,12 @@ export const MainTabNavigator: React.FC = () => {
       </Tab.Screen>
       <Tab.Screen
         name="SellTab"
+        component={SellStackNavigator}
         options={{
           tabBarLabel: 'Sell',
           tabBarIcon: ({ color, size }) => <PlusCircle size={size} color={color} />,
         }}
-      >
-        {() => (
-          <PlaceholderScreen
-            title="Sell"
-            message="Create listing functionality coming soon"
-          />
-        )}
-      </Tab.Screen>
+      />
       <Tab.Screen
         name="MessagesTab"
         options={{

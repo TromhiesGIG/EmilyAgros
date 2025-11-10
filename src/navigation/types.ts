@@ -1,9 +1,22 @@
-// src/navigation/types.ts
 export type HomeStackParamList = {
   Home: undefined;
   AllCategories: undefined;
   CategoryProducts: { categoryId: number; categoryName: string };
   ProductDetail: { product: Product };
+};
+
+export type SellStackParamList = {
+  PostNewAd: {
+    selectedCategory?: Category;
+    selectedSubcategory?: Subcategory;
+  } | undefined;
+  CategorySelection: {
+    currentCategory?: Category;
+  };
+  SubcategorySelection: {
+    category: Category;
+    currentSubcategory?: Subcategory;
+  };
 };
 
 export type MainTabParamList = {
@@ -28,6 +41,15 @@ export type Product = {
 export type Category = {
   id: number;
   name: string;
+  slug: string;
   icon: any; // For require() images
   featured: boolean;
+  hasSubcategories: boolean;
+};
+
+export type Subcategory = {
+  id: number;
+  categoryId: number;
+  name: string;
+  slug: string;
 };
