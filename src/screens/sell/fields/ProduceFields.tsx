@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SellFormData, ProduceFields as ProduceFieldsType } from '../../../types/sellForm';
+import { CustomDatePicker } from '../../../components/forms/CustomDatePicker'; // 1. IMPORTED
 
 interface ProduceFieldsProps {
   formData: SellFormData;
@@ -12,7 +13,12 @@ export const ProduceFields: React.FC<ProduceFieldsProps> = ({
   formData,
   updateFormData,
 }) => {
-  const produce = formData.produce || {};
+  const produce = formData.produce || {
+    perishability: 'perishable',
+    harvestExpiryDate: '',
+    type: 'organic',
+    quantityAvailable: '',
+  };
 
   const updateProduceField = (field: keyof ProduceFieldsType, value: any) => {
     updateFormData({
@@ -54,16 +60,13 @@ export const ProduceFields: React.FC<ProduceFieldsProps> = ({
         </View>
       </View>
 
-      {/* Harvest/Expiry Date */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Harvest/Expiry Date</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {produce.harvestExpiryDate || 'Choose date'}
-          </Text>
-          <Text style={styles.chevron}>📅</Text>
-        </TouchableOpacity>
-      </View>
+      {/* 2. REPLACED Harvest/Expiry Date */}
+      <CustomDatePicker
+        label="Harvest/Expiry Date"
+        value={produce.harvestExpiryDate || ''}
+        placeholder="Choose date"
+        onChange={(value) => updateProduceField('harvestExpiryDate', value)}
+      />
 
       {/* Type - Radio */}
       <View style={styles.fieldContainer}>

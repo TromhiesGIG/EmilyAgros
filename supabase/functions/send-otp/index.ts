@@ -3,7 +3,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
 const TERMII_API_KEY = Deno.env.get('TERMII_API_KEY')!
-const TERMII_SENDER_ID = Deno.env.get('TERMII_SENDER_ID') || 'N-Alert'
+const TERMII_SENDER_ID = 'N-Alert'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,7 +64,7 @@ serve(async (req: Request) => {
         from: TERMII_SENDER_ID,
         sms: `Your EmilyAgros verification code is: ${otp}. Valid for 5 minutes.`,
         type: 'plain',
-        channel: 'generic',
+        channel: 'dnd',
         api_key: TERMII_API_KEY,
       }),
     })

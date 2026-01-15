@@ -2,6 +2,8 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SellFormData, FertilizerFields as FertilizerFieldsType } from '../../../types/sellForm';
+import { CustomDropdown } from '../../../components/forms/CustomDropdown';
+import { DROPDOWN_OPTIONS } from '../../../data/categoryConfig';
 
 interface FertilizerFieldsProps {
   formData: SellFormData;
@@ -12,7 +14,10 @@ export const FertilizerFields: React.FC<FertilizerFieldsProps> = ({
   formData,
   updateFormData,
 }) => {
-  const fertilizer = formData.fertilizer || {};
+  const fertilizer = formData.fertilizer || {
+    fertilizerType: '',
+    formulationState: '',
+  };
 
   const updateFertilizerField = (field: keyof FertilizerFieldsType, value: any) => {
     updateFormData({
@@ -22,16 +27,14 @@ export const FertilizerFields: React.FC<FertilizerFieldsProps> = ({
 
   return (
     <>
-      {/* Fertilizer Type - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Fertilizer Type</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {fertilizer.fertilizerType || 'Select fertilizer type'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Fertilizer Type - Dropdown */}
+      <CustomDropdown
+        label="Fertilizer Type"
+        value={fertilizer.fertilizerType || ''}
+        options={DROPDOWN_OPTIONS.fertilizerCondition}
+        placeholder="Select fertilizer type"
+        onChange={(value) => updateFertilizerField('fertilizerType', value)}
+      />
 
       {/* Brand/Manufacturer */}
       <View style={styles.fieldContainer}>
@@ -45,16 +48,14 @@ export const FertilizerFields: React.FC<FertilizerFieldsProps> = ({
         />
       </View>
 
-      {/* Formulation/State - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Formulation/State</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {fertilizer.formulationState || 'Select state'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Formulation/State - Dropdown */}
+      <CustomDropdown
+        label="Formulation/State"
+        value={fertilizer.formulationState || ''}
+        options={DROPDOWN_OPTIONS.fertilizerFormulation}
+        placeholder="Select state"
+        onChange={(value) => updateFertilizerField('formulationState', value)}
+      />
 
       {/* Application Method */}
       <View style={styles.fieldContainer}>

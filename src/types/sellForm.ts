@@ -43,16 +43,16 @@ export interface SellFormData {
 
 // Equipment (Tractors/Farm Equipment)
 export interface EquipmentFields {
-  quantityAvailable: string;
-  brandManufacturer: string;
-  condition: string;
-  power: string;
-  fuelType: string;
-  transmissionType: string;
-  yearOfManufacture: string;
-  hoursOfUse: string;
-  functionalityStatus: string;
-  availability: 'for_sale' | 'for_rent';
+  quantityAvailable?: string;
+  brandManufacturer?: string;
+  condition?: string;
+  power?: string;
+  fuelType?: string;
+  transmissionType?: string;
+  yearOfManufacture?: string;
+  hoursOfUse?: string;
+  functionalityStatus?: string;
+  availability?: 'for_sale' | 'for_rent';
   rentalRate?: string;
 }
 
@@ -82,31 +82,31 @@ export interface LivestockFields {
 
 // Seedlings
 export interface SeedlingFields {
-  typeVariety: string;
-  seedlingAge: string;
-  recommendedSoilType: string;
-  suitableClimate: string;
-  plantingSeason: string;
-  expectedYieldGrowthTime: string;
-  quantityAvailable: string;
-  climateType: string;
-  cropType: string;
-  packQuantity: string;
+  typeVariety?: string;
+  seedlingAge?: string;
+  recommendedSoilType?: string;
+  suitableClimate?: string;
+  plantingSeason?: string;
+  expectedYieldGrowthTime?: string;
+  quantityAvailable?: string;
+  climateType?: string;
+  cropType?: string;
+  packQuantity?: string;
 }
 
 // Services
 export interface ServiceFields {
-  serviceType: string;
-  yearsOfExperience: string;
-  modeOfDelivery: 'onsite' | 'remote' | 'customer';
-  serviceFee: string;
-  pricingBasis: string;
-  availabilitySchedule: string;
-  serviceCoverageArea: string;
-  durationEstimate: string;
-  specialization: string;
-  toolsEquipmentProvided: string;
-  requiredInputs: string;
+  serviceType?: string;
+  yearsOfExperience?: string;
+  modeOfDelivery?: 'onsite' | 'remote' | 'customer';
+  serviceFee?: string;
+  pricingBasis?: string;
+  availabilitySchedule?: string;
+  serviceCoverageArea?: string;
+  durationEstimate?: string;
+  specialization?: string;
+  toolsEquipmentProvided?: string;
+  requiredInputs?: string;
   supportingDocuments?: string; // File path
 }
 
@@ -133,54 +133,54 @@ export interface HorticultureFields {
 
 // Fertilizers
 export interface FertilizerFields {
-  fertilizerType: string;
-  brandManufacturer: string;
-  formulationState: string;
-  applicationMethod: string;
-  quantityAvailable: string;
-  packSizeWeight: string;
-  minimumOrder: string;
+  fertilizerType?: string;
+  brandManufacturer?: string;
+  formulationState?: string;
+  applicationMethod?: string;
+  quantityAvailable?: string;
+  packSizeWeight?: string;
+  minimumOrder?: string;
 }
 
 // Animal Feed
 export interface AnimalFeedFields {
-  feedType: string;
-  ingredients: string;
-  feedName: string;
-  purposeStage: string;
-  packagingSize: string;
-  quantityAvailable: string;
+  feedType?: string;
+  ingredients?: string;
+  feedName?: string;
+  purposeStage?: string;
+  packagingSize?: string;
+  quantityAvailable?: string;
 }
 
 // Animal Pharmacy
 export interface AnimalPharmacyFields {
-  animalType: string;
-  formType: string;
-  activeIngredients: string;
-  dosageInstructions: string;
-  indications: string;
-  contraindications: string;
-  withdrawalPeriod: string;
-  packSize: string;
-  packageType: string;
-  batchNumber: string;
-  expiryDate: string;
-  nafdacNo: string;
-  quantityAvailable: string;
-  minimumOrderQuantity: string;
+  animalType?: string;
+  formType?: string;
+  activeIngredients?: string;
+  dosageInstructions?: string;
+  indications?: string;
+  contraindications?: string;
+  withdrawalPeriod?: string;
+  packSize?: string;
+  packageType?: string;
+  batchNumber?: string;
+  expiryDate?: string;
+  nafdacNo?: string;
+  quantityAvailable?: string;
+  minimumOrderQuantity?: string;
 }
 
 // Animal Mating (Breeding/Stud Services)
 export interface AnimalMatingFields {
-  breed: string;
-  gender: 'male' | 'female';
-  age: string;
-  pedigreeStatus: string;
-  specialTraits: string;
-  breedingHistory: 'proven' | 'first_time' | 'unknown';
-  fertilityTested: boolean;
-  vaccinationStatus: boolean;
-  availableFor: string;
+  breed?: string;
+  gender?: 'male' | 'female';
+  age?: string;
+  pedigreeStatus?: string;
+  specialTraits?: string;
+  breedingHistory?: 'proven' | 'first_time' | 'unknown';
+  fertilityTested?: boolean;
+  vaccinationStatus?: boolean;
+  availableFor?: string;
 }
 
 // Animal Accessories

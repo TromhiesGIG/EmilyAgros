@@ -2,21 +2,21 @@
 import { Category, Product } from '../navigation/types';
 
 export const categories: Category[] = [
-  { id: 1, name: 'Trending', icon: require('../../assets/trending.png'), featured: true },
-  { id: 2, name: 'Livestock & Pets', icon: require('../../assets/livestock.png'), featured: true },
-  { id: 3, name: 'Services', icon: require('../../assets/services.png'), featured: true },
-  { id: 4, name: 'Food, Fruits and Vegetables', icon: require('../../assets/fruit.png'), featured: true },
-  { id: 5, name: 'Animal Feed', icon: require('../../assets/feed.png'), featured: true },
-  { id: 6, name: 'Tractors/Farm Equipments', icon: require('../../assets/tractors.png'), featured: true },
-  { id: 7, name: 'Fertilizers', icon: require('../../assets/fertilizer.png'), featured: true },
-  { id: 8, name: 'Animal Accessories', icon: require('../../assets/accessories.png'), featured: true },
-  { id: 9, name: 'Seedlings', icon: require('../../assets/seed.png'), featured: false },
-  { id: 10, name: 'Animal Pharmacy', icon: require('../../assets/pharmacy.png'), featured: false },
-  { id: 11, name: 'Animal Mating', icon: require('../../assets/Animal.png'), featured: false },
-  { id: 12, name: 'Agro Chemicals', icon: require('../../assets/chemicals.png'), featured: false },
-  { id: 13, name: 'Horticulture', icon: require('../../assets/hort.png'), featured: false },
-  { id: 14, name: 'Agro Loan', icon: require('../../assets/loan.png'), featured: false },
-  { id: 15, name: 'Agro Insurance', icon: require('../../assets/insurance.png'), featured: false },
+  { id: 1, name: 'Trending', icon: require('../../assets/trending.png'), featured: true, slug: 'trending', hasSubcategories: false },
+  { id: 2, name: 'Livestock & Pets', icon: require('../../assets/livestock.png'), featured: true, slug: 'livestock-pets', hasSubcategories: true },
+  { id: 3, name: 'Services', icon: require('../../assets/services.png'), featured: true, slug: 'services', hasSubcategories: true },
+  { id: 4, name: 'Food, Fruits and Vegetables', icon: require('../../assets/fruit.png'), featured: true, slug: 'farm-produce', hasSubcategories: false },
+  { id: 5, name: 'Animal Feed', icon: require('../../assets/feed.png'), featured: true, slug: 'animal-feed', hasSubcategories: false },
+  { id: 6, name: 'Tractors/Farm Equipments', icon: require('../../assets/tractors.png'), featured: true, slug: 'tractors-farm-equipments', hasSubcategories: false },
+  { id: 7, name: 'Fertilizers', icon: require('../../assets/fertilizer.png'), featured: true, slug: 'fertilizers', hasSubcategories: false },
+  { id: 8, name: 'Animal Accessories', icon: require('../../assets/accessories.png'), featured: true, slug: 'animal-accessories', hasSubcategories: false },
+  { id: 9, name: 'Seedlings', icon: require('../../assets/seed.png'), featured: false, slug: 'seedlings-seeds', hasSubcategories: false },
+  { id: 10, name: 'Animal Pharmacy', icon: require('../../assets/pharmacy.png'), featured: false, slug: 'animal-pharmacy', hasSubcategories: false },
+  { id: 11, name: 'Animal Mating', icon: require('../../assets/Animal.png'), featured: false, slug: 'animal-mating', hasSubcategories: false },
+  { id: 12, name: 'Agro Chemicals', icon: require('../../assets/chemicals.png'), featured: false, slug: 'agro-chemicals', hasSubcategories: false },
+  { id: 13, name: 'Horticulture', icon: require('../../assets/hort.png'), featured: false, slug: 'horticulture-gardening', hasSubcategories: false },
+  { id: 14, name: 'Agro Loan', icon: require('../../assets/loan.png'), featured: false, slug: 'agro-loan', hasSubcategories: false },
+  { id: 15, name: 'Agro Insurance', icon: require('../../assets/insurance.png'), featured: false, slug: 'agro-insurance', hasSubcategories: false },
 ];
 
 export const trendingProducts: Product[] = [

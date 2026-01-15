@@ -2,6 +2,8 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SellFormData, ServiceFields as ServiceFieldsType } from '../../../types/sellForm';
+import { CustomDropdown } from '../../../components/forms/CustomDropdown';
+import { DROPDOWN_OPTIONS } from '../../../data/categoryConfig';
 
 interface ServiceFieldsProps {
   formData: SellFormData;
@@ -12,7 +14,12 @@ export const ServiceFields: React.FC<ServiceFieldsProps> = ({
   formData,
   updateFormData,
 }) => {
-  const service = formData.service || {};
+  const service = formData.service || {
+    serviceType: '',
+    yearsOfExperience: '',
+    pricingBasis: '',
+    modeOfDelivery: 'onsite',
+  };
 
   const updateServiceField = (field: keyof ServiceFieldsType, value: any) => {
     updateFormData({
@@ -33,27 +40,23 @@ export const ServiceFields: React.FC<ServiceFieldsProps> = ({
         </Text>
       </View>
 
-      {/* Service Type - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Service Type</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {service.serviceType || 'Select service type'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Service Type - Dropdown */}
+      <CustomDropdown
+        label="Service Type"
+        value={service.serviceType || ''}
+        options={DROPDOWN_OPTIONS.serviceType}
+        placeholder="Select service type"
+        onChange={(value) => updateServiceField('serviceType', value)}
+      />
 
-      {/* Years of Experience - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Years of Experience</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {service.yearsOfExperience || 'Select experience range'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Years of Experience - Dropdown */}
+      <CustomDropdown
+        label="Years of Experience"
+        value={service.yearsOfExperience || ''}
+        options={DROPDOWN_OPTIONS.yearsOfExperience}
+        placeholder="Select experience range"
+        onChange={(value) => updateServiceField('yearsOfExperience', value)}
+      />
 
       {/* Mode of Delivery - Radio */}
       <View style={styles.fieldContainer}>
@@ -115,16 +118,14 @@ export const ServiceFields: React.FC<ServiceFieldsProps> = ({
         />
       </View>
 
-      {/* Pricing Basis - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Pricing Basis</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {service.pricingBasis || 'Select pricing basis'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Pricing Basis - Dropdown */}
+      <CustomDropdown
+        label="Pricing Basis"
+        value={service.pricingBasis || ''}
+        options={DROPDOWN_OPTIONS.pricingBasis}
+        placeholder="Select pricing basis"
+        onChange={(value) => updateServiceField('pricingBasis', value)}
+      />
 
       {/* Availability Schedule */}
       <View style={styles.fieldContainer}>

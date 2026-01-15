@@ -216,7 +216,76 @@ export const DROPDOWN_OPTIONS = {
     { label: 'Fish', value: 'fish' },
     { label: 'Other', value: 'other' },
   ] as DropdownOption[],
+
+  cropType: [
+    {label: 'Vegetables', value: 'vegetables'},
+    {label: 'Fruits', value: 'fruits'},
+    {label: 'Grains', value: 'grains'},
+    {label: 'Root Crops', value: 'root_crops'},
+    {label: 'Cash Crops', value: 'cash_crops'},
+  ] as DropdownOption[],
+
+  serviceType: [
+    {label: 'Farm Labor', value: 'farm_labor'},
+    {label: 'Equipment Rental', value: 'equipment_rental'},
+    {label: 'Veterinary Care', value: 'veterinary_care'},
+    {label: 'Agricultural Consulting', value: 'agricultural_consulting'},
+    {label: 'Irrigation Services', value: 'irrigation_services'},
+  ] as DropdownOption[],
+
+  pricingBasis: [
+    {label: 'Per Hour', value: 'per_hour'},
+    {label: 'Per Day', value: 'per_day'},
+    {label: 'Per Week', value: 'per_week'},
+    {label: 'Per Project', value: 'per_project'},
+    {label: 'Per Visit', value: 'per_visit'},
+  ] as DropdownOption[],
 };
+
+export const LIVESTOCK_BREEDS: Record<string, DropdownOption[]> = {
+  dogs: [
+    {label: 'Rottweiler', value: 'rottweiler'},
+    {label: 'German Shepherd', value: 'german_shepherd'},
+    {label: 'Bulldog', value: 'bulldog'},
+    {label: 'Boerboel', value: 'boerboel'},
+    {label: 'Lhasa Apso', value: 'lhasa_apso'},
+  ],
+  cats: [
+    {label: 'Persian', value: 'persian'},
+    {label: 'Siamese', value: 'siamese'},
+    {label: 'Local', value: 'local'},
+  ],
+  cattle: [
+    {label: 'Brahman', value: 'brahman'},
+    {label: 'Angus', value: 'angus'},
+    {label: 'White Fulani', value: 'white_fulani'},
+    {label: 'Red Bororo', value: 'red_bororo'},
+  ],
+  pigs: [
+    {label: 'Large White', value: 'large_white'},
+    {label: 'Duroc', value: 'duroc'},
+    {label: 'Landrace', value: 'landrace'},
+  ],
+  goats: [
+    {label: 'Boer', value: 'boer'},
+    {label: 'West African Dwarf', value: 'west_african_dwarf'},
+    {label: 'Kalahari Red', value: 'kalahari_red'},
+  ],
+  sheep: [
+    {label: 'West African Dwarf', value: 'west_african_dwarf'},
+    {label: 'Balami', value: 'balami'},
+    {label: 'Uda', value: 'uda'},
+  ],
+  'birds-poultry': [
+    {label: 'Broiler', value: 'broiler'},
+    {label: 'Layer', value: 'layer'},
+    {label: 'Cockerel', value: 'cockerel'},
+    {label: 'Turkey', value: 'turkey'},
+    {label: 'Ostrich', value: 'ostrich'},
+  ],
+  // ... (add more for other subcategories as needed)
+};
+
 
 // Helper function to get subcategories by category ID
 export const getSubcategoriesByCategory = (categoryId: number): Subcategory[] => {

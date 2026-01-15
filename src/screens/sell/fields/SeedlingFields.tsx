@@ -2,6 +2,8 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SellFormData, SeedlingFields as SeedlingFieldsType } from '../../../types/sellForm';
+import { CustomDropdown } from '../../../components/forms/CustomDropdown';
+import { DROPDOWN_OPTIONS } from '../../../data/categoryConfig';
 
 interface SeedlingFieldsProps {
   formData: SellFormData;
@@ -12,7 +14,12 @@ export const SeedlingFields: React.FC<SeedlingFieldsProps> = ({
   formData,
   updateFormData,
 }) => {
-  const seedling = formData.seedling || {};
+  const seedling = formData.seedling || {
+    typeVariety: '',
+    suitableClimate: '',
+    climateType: '',
+    cropType: '',
+  };
 
   const updateSeedlingField = (field: keyof SeedlingFieldsType, value: any) => {
     updateFormData({
@@ -22,16 +29,14 @@ export const SeedlingFields: React.FC<SeedlingFieldsProps> = ({
 
   return (
     <>
-      {/* Type/Variety - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Type/Variety</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {seedling.typeVariety || 'Select seed type'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Type/Variety - Dropdown */}
+      <CustomDropdown
+        label="Type/Variety"
+        value={seedling.typeVariety || ''}
+        options={DROPDOWN_OPTIONS.seedTypeVariety}
+        placeholder="Select seed type"
+        onChange={(value) => updateSeedlingField('typeVariety', value)}
+      />
 
       {/* Seedling Age */}
       <View style={styles.fieldContainer}>
@@ -57,16 +62,14 @@ export const SeedlingFields: React.FC<SeedlingFieldsProps> = ({
         />
       </View>
 
-      {/* Suitable Climate - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Suitable Climate</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {seedling.suitableClimate || 'Select climate type'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Suitable Climate - Dropdown */}
+      <CustomDropdown
+        label="Suitable Climate"
+        value={seedling.suitableClimate || ''}
+        options={DROPDOWN_OPTIONS.climateType}
+        placeholder="Select climate type"
+        onChange={(value) => updateSeedlingField('suitableClimate', value)}
+      />
 
       {/* Planting Season */}
       <View style={styles.fieldContainer}>
@@ -106,27 +109,23 @@ export const SeedlingFields: React.FC<SeedlingFieldsProps> = ({
         />
       </View>
 
-      {/* Climate Type - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Climate Type</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {seedling.climateType || 'Select climate type'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Climate Type - Dropdown */}
+      <CustomDropdown
+        label="Climate Type"
+        value={seedling.climateType || ''}
+        options={DROPDOWN_OPTIONS.climateType}
+        placeholder="Select climate type"
+        onChange={(value) => updateSeedlingField('climateType', value)}
+      />
 
-      {/* Crop Type - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Crop Type</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {seedling.cropType || 'Select crop type'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Crop Type - Dropdown */}
+      <CustomDropdown
+        label="Crop Type"
+        value={seedling.cropType || ''}
+        options={DROPDOWN_OPTIONS.cropType}
+        placeholder="Select crop type"
+        onChange={(value) => updateSeedlingField('cropType', value)}
+      />
 
       {/* Pack/Quantity */}
       <View style={styles.fieldContainer}>

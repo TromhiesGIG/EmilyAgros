@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SellFormData } from '../../../types/sellForm';
+import { ImageUploadGrid } from '../../../components/forms/ImageUploadGrid'; // 1. IMPORT
 
 interface CommonFieldsProps {
   formData: SellFormData;
@@ -13,7 +14,8 @@ export const CommonFields: React.FC<CommonFieldsProps> = ({
   updateFormData,
 }) => {
   const descriptionMaxLength = 300;
-  const descriptionLength = formData.description.length;
+  // Ensure description is not null before checking length
+  const descriptionLength = formData.description ? formData.description.length : 0;
 
   return (
     <>
@@ -55,21 +57,19 @@ export const CommonFields: React.FC<CommonFieldsProps> = ({
         </Text>
       </View>
 
-      {/* Product Images */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Product Images</Text>
-        <TouchableOpacity style={styles.imageUploadBox} activeOpacity={0.7}>
-          <Text style={styles.plusIcon}>+</Text>
-        </TouchableOpacity>
-        <Text style={styles.helperText}>
-          First picture is the title picture. Upload a maximum of 5 images. Each
-          one should not exceed 5Mb
-        </Text>
-      </View>
+      {/* 2. REPLACE Product Images placeholder */}
+      <ImageUploadGrid
+        images={formData.images || []}
+        onImagesChange={(newImages) => updateFormData({ images: newImages })}
+        maxImages={5}
+      />
     </>
   );
 };
 
+// 3. REMOVED styles for imageUploadBox, plusIcon, helperText
+//    (They are now inside ImageUploadGrid.tsx)
+//    (Keeping the rest of the styles)
 const styles = StyleSheet.create({
   fieldContainer: {
     paddingHorizontal: 16,
@@ -109,23 +109,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 4,
   },
-  imageUploadBox: {
-    width: 100,
-    height: 100,
-    backgroundColor: '#D1FAE5',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  plusIcon: {
-    fontSize: 40,
-    color: '#00A651',
-    fontWeight: '300',
-  },
-  helperText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 8,
-    lineHeight: 16,
-  },
+  // Note: imageUploadBox, plusIcon, and helperText styles are removed
+  // as they are now encapsulated in ImageUploadGrid.tsx
 });

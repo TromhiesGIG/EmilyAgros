@@ -2,6 +2,9 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SellFormData, LivestockFields as LivestockFieldsType } from '../../../types/sellForm';
+import { CustomDropdown } from '../../../components/forms/CustomDropdown';
+import { DROPDOWN_OPTIONS, LIVESTOCK_BREEDS } from '../../../data/categoryConfig';
+import { CustomDatePicker } from '../../../components/forms/CustomDatePicker'; // 1. IMPORTED
 
 interface LivestockFieldsProps {
   formData: SellFormData;
@@ -12,7 +15,28 @@ export const LivestockFields: React.FC<LivestockFieldsProps> = ({
   formData,
   updateFormData,
 }) => {
-  const livestock = formData.livestock || { healthCondition: {}, featuresTraits: {} };
+  const livestock = formData.livestock || {
+    breed: '',
+    gender: 'male' as 'male' | 'female',
+    age: '',
+    dateOfBirth: '',
+    color: '',
+    size: '',
+    registered: false,
+    healthCondition: {
+      vaccinated: false,
+      dewormed: false,
+      spayedNeutered: false,
+    },
+    healthNotes: '',
+    featuresTraits: {
+      temperament: '',
+      specialTraits: '',
+      trainingLevel: '',
+    },
+    availableFrom: '',
+    deliveryAvailable: false,
+  };
 
   const updateLivestockField = (field: keyof LivestockFieldsType, value: any) => {
     updateFormData({
@@ -20,20 +44,26 @@ export const LivestockFields: React.FC<LivestockFieldsProps> = ({
     });
   };
 
+  // Get breeds based on selected subcategory
+  const getBreedOptions = () => {
+    // Note: This relies on formData.subcategoryName being 'Dogs', 'Cats', etc.
+    // The guide uses subcategoryName, but subcategorySlug might be more robust if available.
+    // Following guide's logic:
+    const subcategoryKey = formData.subcategoryName?.toLowerCase().replace(/ /g, '_').replace(/\//g, '-');
+    return (subcategoryKey && LIVESTOCK_BREEDS[subcategoryKey]) ? LIVESTOCK_BREEDS[subcategoryKey] : [];
+  };
+
   return (
     <>
-      {/* Breed - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>
-          Breed<Text style={styles.required}>*</Text>
-        </Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {livestock.breed || 'Select breed'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Breed - DYNAMIC DROPDOWN */}
+      <CustomDropdown
+        label="Breed"
+        value={livestock.breed || ''}
+        options={getBreedOptions()}
+        placeholder="Select breed"
+        onChange={(value) => updateLivestockField('breed', value)}
+        required
+      />
 
       {/* Gender */}
       <View style={styles.fieldContainer}>
@@ -75,16 +105,13 @@ export const LivestockFields: React.FC<LivestockFieldsProps> = ({
         />
       </View>
 
-      {/* Date of Birth */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Date of Birth</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {livestock.dateOfBirth || 'Select date'}
-          </Text>
-          <Text style={styles.chevron}>📅</Text>
-        </TouchableOpacity>
-      </View>
+      {/* 2. REPLACED Date of Birth */}
+      <CustomDatePicker
+        label="Date of Birth"
+        value={livestock.dateOfBirth || ''}
+        placeholder="Select date"
+        onChange={(value) => updateLivestockField('dateOfBirth', value)}
+      />
 
       {/* Color */}
       <View style={styles.fieldContainer}>
@@ -158,7 +185,7 @@ export const LivestockFields: React.FC<LivestockFieldsProps> = ({
             activeOpacity={0.7}
           >
             <View style={styles.radioCircle}>
-              {livestock.healthCondition?.vaccinated && (
+              {livestock.healthCondition.vaccinated && (
                 <View style={styles.radioSelected} />
               )}
             </View>
@@ -176,7 +203,7 @@ export const LivestockFields: React.FC<LivestockFieldsProps> = ({
             activeOpacity={0.7}
           >
             <View style={styles.radioCircle}>
-              {livestock.healthCondition?.vaccinated === false && (
+              {livestock.healthCondition.vaccinated === false && (
                 <View style={styles.radioSelected} />
               )}
             </View>
@@ -200,7 +227,7 @@ export const LivestockFields: React.FC<LivestockFieldsProps> = ({
             activeOpacity={0.7}
           >
             <View style={styles.radioCircle}>
-              {livestock.healthCondition?.dewormed && (
+              {livestock.healthCondition.dewormed && (
                 <View style={styles.radioSelected} />
               )}
             </View>
@@ -218,7 +245,7 @@ export const LivestockFields: React.FC<LivestockFieldsProps> = ({
             activeOpacity={0.7}
           >
             <View style={styles.radioCircle}>
-              {livestock.healthCondition?.dewormed === false && (
+              {livestock.healthCondition.dewormed === false && (
                 <View style={styles.radioSelected} />
               )}
             </View>
@@ -242,7 +269,7 @@ export const LivestockFields: React.FC<LivestockFieldsProps> = ({
             activeOpacity={0.7}
           >
             <View style={styles.radioCircle}>
-              {livestock.healthCondition?.spayedNeutered && (
+              {livestock.healthCondition.spayedNeutered && (
                 <View style={styles.radioSelected} />
               )}
             </View>
@@ -260,7 +287,7 @@ export const LivestockFields: React.FC<LivestockFieldsProps> = ({
             activeOpacity={0.7}
           >
             <View style={styles.radioCircle}>
-              {livestock.healthCondition?.spayedNeutered === false && (
+              {livestock.healthCondition.spayedNeutered === false && (
                 <View style={styles.radioSelected} />
               )}
             </View>
@@ -296,7 +323,7 @@ export const LivestockFields: React.FC<LivestockFieldsProps> = ({
           style={styles.input}
           placeholder="E.g Calm/Aggressive/Friendly/Playful"
           placeholderTextColor="#9CA3AF"
-          value={livestock.featuresTraits?.temperament || ''}
+          value={livestock.featuresTraits.temperament || ''}
           onChangeText={(text) =>
             updateLivestockField('featuresTraits', {
               ...livestock.featuresTraits,
@@ -313,7 +340,7 @@ export const LivestockFields: React.FC<LivestockFieldsProps> = ({
           style={styles.input}
           placeholder="E.g Good with kids, trained"
           placeholderTextColor="#9CA3AF"
-          value={livestock.featuresTraits?.specialTraits || ''}
+          value={livestock.featuresTraits.specialTraits || ''}
           onChangeText={(text) =>
             updateLivestockField('featuresTraits', {
               ...livestock.featuresTraits,
@@ -330,7 +357,7 @@ export const LivestockFields: React.FC<LivestockFieldsProps> = ({
           style={styles.input}
           placeholder="E.g Untrained/Basic/Advanced"
           placeholderTextColor="#9CA3AF"
-          value={livestock.featuresTraits?.trainingLevel || ''}
+          value={livestock.featuresTraits.trainingLevel || ''}
           onChangeText={(text) =>
             updateLivestockField('featuresTraits', {
               ...livestock.featuresTraits,
@@ -417,7 +444,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
     minHeight: 80,
-  },
+},
   selectButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',

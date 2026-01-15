@@ -12,7 +12,10 @@ export const AnimalFeedFields: React.FC<AnimalFeedFieldsProps> = ({
   formData,
   updateFormData,
 }) => {
-  const feed = formData.animalFeed || {};
+  const feed = formData.animalFeed || {
+    feedType: '',
+    purposeStage: '',
+  };
 
   const updateFeedField = (field: keyof AnimalFeedFieldsType, value: any) => {
     updateFormData({

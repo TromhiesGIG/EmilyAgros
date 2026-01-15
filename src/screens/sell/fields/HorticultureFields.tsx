@@ -12,7 +12,17 @@ export const HorticultureFields: React.FC<HorticultureFieldsProps> = ({
   formData,
   updateFormData,
 }) => {
-  const horticulture = formData.horticulture || {};
+  const horticulture = formData.horticulture || {
+    botanicalName: '',
+    varietyType: '',
+    plantSizeAge: '',
+    soilRequirement: '',
+    lightRequirement: '',
+    wateringFrequency: '',
+    seasonOfBloomGrowth: '',
+    fertilizerRecommendation: '',
+    quantityAvailable: '',
+  };
 
   const updateHorticultureField = (field: keyof HorticultureFieldsType, value: any) => {
     updateFormData({

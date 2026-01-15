@@ -1,6 +1,6 @@
 // src/screens/sell/fields/AgroChemicalsFields.tsx
 import React from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { SellFormData, AgroChemicalsFields as AgroChemicalsFieldsType } from '../../../types/sellForm';
 
 interface AgroChemicalsFieldsProps {
@@ -12,7 +12,15 @@ export const AgroChemicalsFields: React.FC<AgroChemicalsFieldsProps> = ({
   formData,
   updateFormData,
 }) => {
-  const chemicals = formData.agroChemicals || {};
+  const chemicals = formData.agroChemicals || {
+    activeIngredient: '',
+    brandManufacturer: '',
+    applicationMethod: '',
+    formulationType: '',
+    toxicityLevel: '',
+    quantityAvailable: '',
+    packSize: '',
+  };
 
   const updateChemicalsField = (field: keyof AgroChemicalsFieldsType, value: any) => {
     updateFormData({
@@ -60,14 +68,13 @@ export const AgroChemicalsFields: React.FC<AgroChemicalsFieldsProps> = ({
 
       {/* Formulation Type */}
       <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Formulation Type</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="E.g EC, WP, SC, SL, DF"
-          placeholderTextColor="#9CA3AF"
-          value={chemicals.formulationType || ''}
-          onChangeText={(text) => updateChemicalsField('formulationType', text)}
-        />
+        <Text style={styles.label}>Formulation Type</Text>        
+        <TouchableOpacity style={styles.selectButton}>
+          <Text style={styles.selectButtonPlaceholder}>
+            {chemicals.formulationType || 'Select formulation type'}
+          </Text>
+          <Text style={styles.chevron}>▼</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Toxicity Level */}
@@ -133,5 +140,23 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: '#111827',
+  },
+  selectButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    padding: 16,
+  },
+  selectButtonPlaceholder: {
+    color: '#9CA3AF',
+    fontSize: 16,
+  },
+  chevron: {
+    fontSize: 12,
+    color: '#9CA3AF',
   },
 });

@@ -2,6 +2,8 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SellFormData, AnimalMatingFields as AnimalMatingFieldsType } from '../../../types/sellForm';
+import { CustomDropdown } from '../../../components/forms/CustomDropdown';
+import { DROPDOWN_OPTIONS } from '../../../data/categoryConfig';
 
 interface AnimalMatingFieldsProps {
   formData: SellFormData;
@@ -12,7 +14,9 @@ export const AnimalMatingFields: React.FC<AnimalMatingFieldsProps> = ({
   formData,
   updateFormData,
 }) => {
-  const mating = formData.animalMating || {};
+  const mating = formData.animalMating || {
+    pedigreeStatus: '',
+  };
 
   const updateMatingField = (field: keyof AnimalMatingFieldsType, value: any) => {
     updateFormData({
@@ -74,16 +78,14 @@ export const AnimalMatingFields: React.FC<AnimalMatingFieldsProps> = ({
         />
       </View>
 
-      {/* Pedigree Status - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Pedigree Status</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {mating.pedigreeStatus || 'Select pedigree'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Pedigree Status - Dropdown */}
+      <CustomDropdown
+        label="Pedigree Status"
+        value={mating.pedigreeStatus || ''}
+        options={DROPDOWN_OPTIONS.breedRegistration}
+        placeholder="Select pedigree"
+        onChange={(value) => updateMatingField('pedigreeStatus', value)}
+      />
 
       {/* Special Traits */}
       <View style={styles.fieldContainer}>

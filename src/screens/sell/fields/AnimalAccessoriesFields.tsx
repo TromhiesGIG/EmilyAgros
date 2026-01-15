@@ -12,7 +12,13 @@ export const AnimalAccessoriesFields: React.FC<AnimalAccessoriesFieldsProps> = (
   formData,
   updateFormData,
 }) => {
-  const accessories = formData.animalAccessories || {};
+  const accessories = formData.animalAccessories || {
+    suitableAnimalType: '',
+    brandManufacturer: '',
+    materialType: '',
+    sizeDimension: '',
+    quantityAvailable: '',
+  };
 
   const updateAccessoriesField = (field: keyof AnimalAccessoriesFieldsType, value: any) => {
     updateFormData({

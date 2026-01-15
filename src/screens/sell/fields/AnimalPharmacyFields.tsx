@@ -2,6 +2,9 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SellFormData, AnimalPharmacyFields as AnimalPharmacyFieldsType } from '../../../types/sellForm';
+import { CustomDropdown } from '../../../components/forms/CustomDropdown';
+import { DROPDOWN_OPTIONS } from '../../../data/categoryConfig';
+import { CustomDatePicker } from '../../../components/forms/CustomDatePicker'; // 1. IMPORTED
 
 interface AnimalPharmacyFieldsProps {
   formData: SellFormData;
@@ -12,7 +15,11 @@ export const AnimalPharmacyFields: React.FC<AnimalPharmacyFieldsProps> = ({
   formData,
   updateFormData,
 }) => {
-  const pharmacy = formData.animalPharmacy || {};
+  const pharmacy = formData.animalPharmacy || {
+    formType: '',
+    packageType: '',
+    expiryDate: '',
+  };
 
   const updatePharmacyField = (field: keyof AnimalPharmacyFieldsType, value: any) => {
     updateFormData({
@@ -34,16 +41,14 @@ export const AnimalPharmacyFields: React.FC<AnimalPharmacyFieldsProps> = ({
         />
       </View>
 
-      {/* Form Type - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Form Type</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {pharmacy.formType || 'Select administration type'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Form Type - Dropdown */}
+      <CustomDropdown
+        label="Form Type"
+        value={pharmacy.formType || ''}
+        options={DROPDOWN_OPTIONS.fertilizerFormulation}
+        placeholder="Select administration type"
+        onChange={(value) => updatePharmacyField('formType', value)}
+      />
 
       {/* Active Ingredients */}
       <View style={styles.fieldContainer}>
@@ -128,16 +133,14 @@ export const AnimalPharmacyFields: React.FC<AnimalPharmacyFieldsProps> = ({
         />
       </View>
 
-      {/* Package Type - Dropdown Placeholder */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Package Type</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {pharmacy.packageType || 'Select package type'}
-          </Text>
-          <Text style={styles.chevron}>▼</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Package Type - Dropdown */}
+      <CustomDropdown
+        label="Package Type"
+        value={pharmacy.packageType || ''}
+        options={DROPDOWN_OPTIONS.fertilizerPackaging}
+        placeholder="Select package type"
+        onChange={(value) => updatePharmacyField('packageType', value)}
+      />
 
       {/* Batch Number (optional) */}
       <View style={styles.fieldContainer}>
@@ -151,16 +154,13 @@ export const AnimalPharmacyFields: React.FC<AnimalPharmacyFieldsProps> = ({
         />
       </View>
 
-      {/* Expiry Date */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Expiry Date</Text>
-        <TouchableOpacity style={styles.selectButton}>
-          <Text style={styles.selectButtonPlaceholder}>
-            {pharmacy.expiryDate || 'Select date'}
-          </Text>
-          <Text style={styles.chevron}>📅</Text>
-        </TouchableOpacity>
-      </View>
+      {/* 2. REPLACED Expiry Date */}
+      <CustomDatePicker
+        label="Expiry Date"
+        value={pharmacy.expiryDate || ''}
+        placeholder="Select date"
+        onChange={(value) => updatePharmacyField('expiryDate', value)}
+      />
 
       {/* NAFDAC No. (optional) */}
       <View style={styles.fieldContainer}>

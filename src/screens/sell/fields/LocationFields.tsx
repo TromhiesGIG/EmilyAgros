@@ -1,7 +1,9 @@
 // src/screens/sell/fields/LocationFields.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SellFormData } from '../../../types/sellForm';
+import { CustomDropdown } from '../../../components/forms/CustomDropdown';
+import { NIGERIAN_STATES, LGAS } from '../../../data/nigerianLocations';
 
 interface LocationFieldsProps {
   formData: SellFormData;
@@ -12,33 +14,58 @@ export const LocationFields: React.FC<LocationFieldsProps> = ({
   formData,
   updateFormData,
 }) => {
-  const handleLocationPress = () => {
-    // TODO: Navigate to location picker or use geolocation
-    console.log('Location picker - to be implemented');
+  const location = formData.location || { state: '', lga: '', address: '' };
+
+  // Get the list of LGAs for the currently selected state
+  const [lgaOptions, setLgaOptions] = useState<typeof NIGERIAN_STATES>(() => {
+    // Initialize with LGAs if a state is already selected
+    return location.state ? LGAS[location.state] || [] : [];
+  });
+
+  // Handle state change: update state and reset LGA
+  const handleStateChange = (stateValue: string) => {
+    // Get the new list of LGAs
+    const newLgaOptions = LGAS[stateValue] || [];
+    setLgaOptions(newLgaOptions);
+    
+    // Update form data: set new state, clear LGA
+    updateFormData({
+      location: {
+        ...location,
+        state: stateValue,
+        lga: '', // Reset LGA when state changes
+      },
+    });
+  };
+
+  // Handle LGA change
+  const handleLgaChange = (lgaValue: string) => {
+    updateFormData({
+      location: { ...location, lga: lgaValue },
+    });
   };
 
   return (
     <>
-      {/* Location */}
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Location</Text>
-        <TouchableOpacity
-          style={styles.selectButton}
-          onPress={handleLocationPress}
-        >
-          <Text
-            style={[
-              styles.selectButtonText,
-              !formData.location.state && styles.selectButtonPlaceholder,
-            ]}
-          >
-            {formData.location.state && formData.location.lga
-              ? `${formData.location.state}, ${formData.location.lga}`
-              : 'Choose product location'}
-          </Text>
-          <Text style={styles.chevron}>›</Text>
-        </TouchableOpacity>
-      </View>
+      {/* State Dropdown */}
+      <CustomDropdown
+        label="State"
+        value={location.state}
+        options={NIGERIAN_STATES}
+        placeholder="Select state"
+        onChange={handleStateChange}
+        required // Location is required
+      />
+
+      {/* LGA Dropdown */}
+      <CustomDropdown
+        label="LGA"
+        value={location.lga}
+        options={lgaOptions}
+        placeholder={location.state ? 'Select LGA' : 'Select state first'}
+        onChange={handleLgaChange}
+        required // Location is required
+      />
 
       {/* Address */}
       <View style={styles.fieldContainer}>
@@ -47,10 +74,10 @@ export const LocationFields: React.FC<LocationFieldsProps> = ({
           style={styles.input}
           placeholder="E.g Street name, Landmark"
           placeholderTextColor="#9CA3AF"
-          value={formData.location.address}
+          value={location.address}
           onChangeText={(text) =>
             updateFormData({
-              location: { ...formData.location, address: text },
+              location: { ...location, address: text },
             })
           }
         />
@@ -59,6 +86,8 @@ export const LocationFields: React.FC<LocationFieldsProps> = ({
   );
 };
 
+// Removed old button-related styles:
+// selectButton, selectButtonText, selectButtonPlaceholder, chevron
 const styles = StyleSheet.create({
   fieldContainer: {
     paddingHorizontal: 16,
@@ -69,27 +98,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
     marginBottom: 8,
-  },
-  selectButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 16,
-  },
-  selectButtonText: {
-    fontSize: 16,
-    color: '#111827',
-  },
-  selectButtonPlaceholder: {
-    color: '#9CA3AF',
-  },
-  chevron: {
-    fontSize: 24,
-    color: '#9CA3AF',
   },
   input: {
     backgroundColor: '#FFFFFF',

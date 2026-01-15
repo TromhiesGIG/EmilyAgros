@@ -12,6 +12,8 @@ export const ContactFields: React.FC<ContactFieldsProps> = ({
   formData,
   updateFormData,
 }) => {
+  const contact = formData.contact || {};
+
   return (
     <>
       {/* Name */}
@@ -21,10 +23,10 @@ export const ContactFields: React.FC<ContactFieldsProps> = ({
           style={styles.input}
           placeholder="Bambo Temidire"
           placeholderTextColor="#9CA3AF"
-          value={formData.contact.name}
+          value={contact.name || ''}
           onChangeText={(text) =>
             updateFormData({
-              contact: { ...formData.contact, name: text },
+              contact: { ...contact, name: text },
             })
           }
         />
@@ -37,10 +39,10 @@ export const ContactFields: React.FC<ContactFieldsProps> = ({
           style={styles.input}
           placeholder="Enter business name"
           placeholderTextColor="#9CA3AF"
-          value={formData.contact.businessName}
+          value={contact.businessName || ''}
           onChangeText={(text) =>
             updateFormData({
-              contact: { ...formData.contact, businessName: text },
+              contact: { ...contact, businessName: text },
             })
           }
         />
@@ -53,10 +55,10 @@ export const ContactFields: React.FC<ContactFieldsProps> = ({
           style={styles.input}
           placeholder="Enter your phone number"
           placeholderTextColor="#9CA3AF"
-          value={formData.contact.phone}
+          value={contact.phone || ''}
           onChangeText={(text) =>
             updateFormData({
-              contact: { ...formData.contact, phone: text },
+              contact: { ...contact, phone: text },
             })
           }
           keyboardType="phone-pad"
@@ -71,13 +73,13 @@ export const ContactFields: React.FC<ContactFieldsProps> = ({
             style={styles.radioOption}
             onPress={() =>
               updateFormData({
-                contact: { ...formData.contact, availableOnWhatsapp: true },
+                contact: { ...contact, availableOnWhatsapp: true },
               })
             }
             activeOpacity={0.7}
           >
             <View style={styles.radioCircle}>
-              {formData.contact.availableOnWhatsapp && (
+              {contact.availableOnWhatsapp && (
                 <View style={styles.radioSelected} />
               )}
             </View>
@@ -88,13 +90,13 @@ export const ContactFields: React.FC<ContactFieldsProps> = ({
             style={styles.radioOption}
             onPress={() =>
               updateFormData({
-                contact: { ...formData.contact, availableOnWhatsapp: false },
+                contact: { ...contact, availableOnWhatsapp: false },
               })
             }
             activeOpacity={0.7}
           >
             <View style={styles.radioCircle}>
-              {!formData.contact.availableOnWhatsapp && (
+              {!contact.availableOnWhatsapp && (
                 <View style={styles.radioSelected} />
               )}
             </View>
