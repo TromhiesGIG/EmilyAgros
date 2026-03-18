@@ -48,6 +48,7 @@ export const ChatDetail = ({ route, navigation }: any) => {
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
   const [messageActionsPosition, setMessageActionsPosition] = useState({ x: 0, y: 0 });
   const [showForwardModal, setShowForwardModal] = useState(false);
+  const [showStarredMessages, setShowStarredMessages] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   // Chat room ID for typing status - ALWAYS sorted to ensure both users get same ID
@@ -185,7 +186,7 @@ export const ChatDetail = ({ route, navigation }: any) => {
     }
 
     const channel = supabase
-      .channel(`chat-${user?.id}-${receiverId}`)
+      .channel(`chat-${chatRoom}`) // Use chatRoom which is already sorted
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -212,12 +213,19 @@ export const ChatDetail = ({ route, navigation }: any) => {
           
           // Auto-mark as read if it's for me
           if (newMsg.receiver_id === user?.id) {
+            console.log('📖 Marking message as read:', newMsg.id);
             const now = new Date().toISOString();
             supabase.from('messages').update({ 
               is_read: true,
               read_at: now,
               delivered_at: now,
-            }).eq('id', newMsg.id);
+            }).eq('id', newMsg.id).then(({ error }) => {
+              if (error) {
+                console.error('❌ Error marking as read:', error);
+              } else {
+                console.log('✅ Message marked as read in DB');
+              }
+            });
           }
         }
       })
@@ -227,9 +235,26 @@ export const ChatDetail = ({ route, navigation }: any) => {
         table: 'messages',
       }, (payload) => {
         const updatedMsg = payload.new as any;
-        setMessages(prev =>
-          prev.map(m => m.id === updatedMsg.id ? updatedMsg : m)
-        );
+        console.log('🔄 Message updated via realtime:', {
+          id: updatedMsg.id,
+          is_read: updatedMsg.is_read,
+          read_at: updatedMsg.read_at,
+          delivered_at: updatedMsg.delivered_at,
+        });
+        
+        setMessages(prev => {
+          const updated = prev.map(m => {
+            if (m.id === updatedMsg.id) {
+              console.log('✅ Updating local message:', {
+                oldReadStatus: m.is_read,
+                newReadStatus: updatedMsg.is_read,
+              });
+              return updatedMsg;
+            }
+            return m;
+          });
+          return updated;
+        });
       })
       .subscribe();
 
@@ -871,7 +896,10 @@ export const ChatDetail = ({ route, navigation }: any) => {
             <TouchableOpacity onPress={handleCall} style={styles.headerBtn}>
               <Phone size={22} color="#111827" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.headerBtn}>
+            <TouchableOpacity 
+              style={styles.headerBtn}
+              onPress={() => setShowStarredMessages(true)}
+            >
               <MoreVertical size={22} color="#111827" />
             </TouchableOpacity>
           </View>
@@ -1062,6 +1090,62 @@ export const ChatDetail = ({ route, navigation }: any) => {
           onClose={() => setShowForwardModal(false)}
           message={selectedMessage}
         />
+
+        {/* Starred Messages Modal */}
+        <Modal visible={showStarredMessages} animationType="slide">
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowStarredMessages(false)}>
+                <ArrowLeft size={24} color="#111827" />
+              </TouchableOpacity>
+              <Text style={styles.modalHeaderTitle}>Starred Messages</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <FlatList
+              data={messages.filter(m => m.is_starred)}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={{ padding: 16 }}
+              renderItem={({ item }) => {
+                const isMe = item.sender_id === user?.id;
+                return (
+                  <TouchableOpacity
+                    style={styles.starredItem}
+                    onPress={() => {
+                      setShowStarredMessages(false);
+                      // Scroll to message (optional - requires more work)
+                    }}
+                  >
+                    <View style={[styles.starredBubble, isMe ? styles.myMsg : styles.theirMsg]}>
+                      {item.message_type === 'image' ? (
+                        <Text style={[styles.msgText, isMe ? styles.myText : styles.theirText]}>
+                          📷 Photo
+                        </Text>
+                      ) : item.message_type === 'voice' ? (
+                        <Text style={[styles.msgText, isMe ? styles.myText : styles.theirText]}>
+                          🎤 Voice message
+                        </Text>
+                      ) : (
+                        <Text style={[styles.msgText, isMe ? styles.myText : styles.theirText]}>
+                          {item.content}
+                        </Text>
+                      )}
+                      <Text style={[styles.msgTime, isMe ? styles.myTime : styles.theirTime, { marginTop: 4 }]}>
+                        {formatDate(item.created_at)} {formatTime(item.created_at)}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No starred messages</Text>
+                  <Text style={styles.emptySubText}>Long press a message and tap ⭐ to star it</Text>
+                </View>
+              }
+            />
+          </SafeAreaView>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
     </GestureHandlerRootView>
@@ -1153,4 +1237,9 @@ const styles = StyleSheet.create({
   reactionBubble: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 12, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: '#E5E7EB' },
   reactionEmoji: { fontSize: 14 },
   reactionCount: { fontSize: 10, marginLeft: 2, color: '#6B7280', fontWeight: '600' },
+  // Starred messages modal
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  modalHeaderTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  starredItem: { marginBottom: 12 },
+  starredBubble: { maxWidth: '100%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
 });
