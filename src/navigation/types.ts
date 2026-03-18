@@ -1,55 +1,78 @@
-export type HomeStackParamList = {
-  Home: undefined;
-  AllCategories: undefined;
-  CategoryProducts: { categoryId: number; categoryName: string };
-  ProductDetail: { product: Product };
-};
+// src/navigation/types.ts
+import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { CompositeScreenProps } from '@react-navigation/native';
+import { StackScreenProps } from '@react-navigation/stack';
 
-export type SellStackParamList = {
-  PostNewAd: {
-    selectedCategory?: Category;
-    selectedSubcategory?: Subcategory;
-  } | undefined;
-  CategorySelection: {
-    currentCategory?: Category;
-  };
-  SubcategorySelection: {
-    category: Category;
-    currentSubcategory?: Subcategory;
-  };
-};
+export interface SubCategory {
+  id: number;
+  name: string;
+  slug: string;
+}
 
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  icon: any;
+  subcategories: SubCategory[];
+}
+
+// 1. Define the Bottom Tab routes
 export type MainTabParamList = {
   HomeTab: undefined;
   SearchTab: undefined;
-  SellTab: undefined;
   MessagesTab: undefined;
-  MoreTab: undefined;
+  SellTab: undefined;
+  ChatTab: undefined;
+  MoreTab: undefined; // This will hold your ProfileStackNavigator
 };
 
-export type Product = {
-  id: number;
-  title: string;
-  price: number;
-  location: string;
-  condition: string;
-  image: string;
-  description?: string;
-  categoryId: number;
+// 2. Define the Stack routes (This matches your current list)
+export type SellStackParamList = {
+  CategorySelection: { currentCategory?: Category };
+  SubcategorySelection: { category: Category; currentSubcategory?: SubCategory };
+  PostNewAd: { selectedCategory?: Category; selectedSubcategory?: SubCategory };
 };
 
-export type Category = {
-  id: number;
-  name: string;
-  slug: string;
-  icon: any; // For require() images
-  featured: boolean;
-  hasSubcategories: boolean;
+export type HomeStackParamList = {
+  Home: undefined;
+  AllCategories: undefined;
+  ProductDetail: { productId: string };
+  
+  Profile: undefined;
+  AccountSettings: undefined;
+  PersonalInfo: undefined;
+  EmailAddress: undefined;
+  ChangePassword: undefined;
+  
+  GeneralSettings: undefined;
+  ManageNotifications: undefined;
+  LocationAccess: undefined;
+  Permissions: undefined;
+  
+  MyAds: undefined;
+  AdDetails: { adId: string };
+  SavedItems: undefined;
+  Follows: undefined;
+  
+  MyWallet: undefined;
+  WalletRecharge: undefined;
+  Subscriptions: undefined;
+  PlanManagement: undefined;
+
+  ChatDetail: { 
+    chatId: string; 
+    sellerName: string; 
+    adTitle: string; 
+    adPrice: number; 
+    adImage: string; 
+    phoneNumber?: string; 
+  };
 };
 
-export type Subcategory = {
-  id: number;
-  categoryId: number;
-  name: string;
-  slug: string;
-};
+// 3. Helper type for screen props (Optional but very helpful for your components)
+export type ProfileStackScreenProps<T extends keyof HomeStackParamList> = 
+  CompositeScreenProps<
+    StackScreenProps<HomeStackParamList, T>,
+    BottomTabScreenProps<MainTabParamList>
+  >;

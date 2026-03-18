@@ -1,86 +1,82 @@
 // src/screens/main/MyAdsScreen.tsx
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  FlatList, 
-  Image,
-  ScrollView
+import {
+  View, Text, StyleSheet, TouchableOpacity, SafeAreaView,
+  FlatList, Image, ActivityIndicator, RefreshControl
 } from 'react-native';
-import { ArrowLeft, Search, MoreVertical, ChevronDown } from 'lucide-react-native';
-
-// Mock data based on your "My Ads (All)" design
-const MOCK_ADS = [
-  {
-    id: '1',
-    title: 'Massey Ferguson 399',
-    category: 'Tractor/Farm Equipments',
-    status: 'Active',
-    views: 0,
-    chats: 0,
-    created: 'Today',
-    image: 'https://images.unsplash.com/photo-1592919016327-0460f336c2a6?q=80&w=1000&auto=format&fit=crop'
-  },
-  {
-    id: '2',
-    title: 'Ecofloat Fish Feed 4mm',
-    category: 'Animal Feed',
-    status: 'Cancelled',
-    views: 79,
-    chats: 10,
-    created: 'Sep 25',
-    image: 'https://images.unsplash.com/photo-1615827341235-9856a908906a?q=80&w=1000&auto=format&fit=crop'
-  }
-];
+import { ArrowLeft, Search, MoreVertical } from 'lucide-react-native';
+import { useSyncData, Ad } from '../../hooks/useSyncData';
 
 export const MyAdsScreen = ({ navigation }: any) => {
-  const [activeTab, setActiveTab] = useState('All');
+  const { myAds, loading, refresh } = useSyncData();
+  const [activeTab, setActiveTab] = useState<'All' | 'Active' | 'Cancelled'>('All');
 
-  const AdCard = ({ item }: { item: any }) => (
-    <View style={styles.card}>
-      <View style={styles.cardMain}>
-        <Image source={{ uri: item.image }} style={styles.adImage} />
-        <View style={styles.adInfo}>
-          <View style={styles.statusHeader}>
-            <View style={[styles.statusBadge, item.status === 'Active' ? styles.activeBadge : styles.cancelledBadge]}>
-              <Text style={[styles.statusText, item.status === 'Active' ? styles.activeText : styles.cancelledText]}>
-                {item.status}
-              </Text>
+  const filteredAds = myAds.filter(ad => {
+    if (activeTab === 'All') return true;
+    return ad.status === activeTab;
+  });
+
+  const AdCard = ({ item }: { item: Ad }) => {
+    const imageUri = item.images?.[0] || 'https://via.placeholder.com/100x100?text=No+Image';
+    const location = [item.location_state, item.location_lga].filter(Boolean).join(', ') || 'Location not set';
+    const price = item.price ? `₦${Number(item.price).toLocaleString()}` : 'Price not set';
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardMain}>
+          <Image source={{ uri: imageUri }} style={styles.adImage} />
+          <View style={styles.adInfo}>
+            <View style={styles.statusHeader}>
+              <View style={[
+                styles.statusBadge,
+                item.status === 'Active' ? styles.activeBadge : styles.cancelledBadge
+              ]}>
+                <Text style={[
+                  styles.statusText,
+                  item.status === 'Active' ? styles.activeText : styles.cancelledText
+                ]}>
+                  {item.status}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => navigation.navigate('AdDetails', { adId: item.id })}>
+                <MoreVertical size={20} color="#111827" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity>
-              <MoreVertical size={20} color="#111827" />
-            </TouchableOpacity>
+
+            <Text style={styles.adTitle} numberOfLines={1}>{item.title}</Text>
+            <Text style={styles.adPrice}>{price}</Text>
+            <Text style={styles.adLocation} numberOfLines={1}>📍 {location}</Text>
+            <Text style={styles.metrics}>
+              {item.views || 0} views
+            </Text>
           </View>
-          
-          <Text style={styles.adTitle} numberOfLines={1}>{item.title}</Text>
-          <Text style={styles.adCategory}>{item.category}</Text>
-          
-          <Text style={styles.metrics}>
-            {item.views} views • {item.chats} chats
+        </View>
+
+        <View style={styles.cardFooter}>
+          <Text style={styles.createdText}>
+            {new Date(item.created_at).toLocaleDateString('en-NG', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            })}
           </Text>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              item.status === 'Cancelled' ? styles.reactivateButton : styles.boostButton
+            ]}
+          >
+            <Text style={[
+              styles.actionButtonText,
+              item.status === 'Cancelled' && styles.reactivateButtonText
+            ]}>
+              {item.status === 'Active' ? 'Boost' : 'Reactivate'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      <View style={styles.cardFooter}>
-        <Text style={styles.createdText}>Created {item.created}</Text>
-        <TouchableOpacity 
-          style={[styles.actionButton, item.status === 'Cancelled' ? styles.reactivateButton : styles.boostButton]}
-          onPress={() => item.status === 'Active' ? console.log("Boost pressed") : console.log("Reactivate pressed")}
-        >
-          <Text style={[styles.actionButtonText, item.status === 'Cancelled' && styles.reactivateButtonText]}>
-            {item.status === 'Active' ? 'Boost' : 'Reactivate'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const filteredAds = activeTab === 'All' 
-    ? MOCK_ADS 
-    : MOCK_ADS.filter(ad => ad.status === activeTab);
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -95,54 +91,48 @@ export const MyAdsScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
 
-        {/* Custom Tab Bar */}
         <View style={styles.tabBar}>
-          {['All', 'Active', 'Cancelled'].map((tab) => (
-            <TouchableOpacity 
-              key={tab} 
+          {(['All', 'Active', 'Cancelled'] as const).map(tab => (
+            <TouchableOpacity
+              key={tab}
               style={[styles.tab, activeTab === tab && styles.activeTab]}
               onPress={() => setActiveTab(tab)}
             >
-              <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab}</Text>
+              <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+                {tab}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
-
-      {/* Sorting Controls */}
-      <View style={styles.controls}>
-        <TouchableOpacity style={styles.controlBtn}>
-          <Text style={styles.controlText}>Sort: Category</Text>
-          <ChevronDown size={18} color="#111827" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.controlBtn}>
-          <Text style={styles.controlText}>Ascending</Text>
-          <ChevronDown size={18} color="#111827" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Expiry Warning for Cancelled Tab */}
-      {activeTab === 'Cancelled' && (
-        <View style={styles.warningBanner}>
-          <Text style={styles.warningText}>
-            Cancelled ads will be permanently deleted after 7 days
-          </Text>
-        </View>
-      )}
 
       <FlatList
         data={filteredAds}
         renderItem={({ item }) => <AdCard item={item} />}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={refresh} colors={['#008102']} />
+        }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>No ads created!</Text>
-            <Text style={styles.emptySubtitle}>You haven't posted any ads yet.</Text>
-            <TouchableOpacity style={styles.emptyLink}>
-              <Text style={styles.emptyLinkText}>Create your first ad</Text>
-            </TouchableOpacity>
-          </View>
+          !loading ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyTitle}>No ads found</Text>
+              <Text style={styles.emptySubtitle}>
+                {activeTab === 'All'
+                  ? "You haven't posted any ads yet."
+                  : `You have no ${activeTab.toLowerCase()} ads.`}
+              </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('SellTab')}
+                style={styles.postBtn}
+              >
+                <Text style={styles.postBtnText}>Post an Ad</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <ActivityIndicator size="large" color="#008102" style={{ marginTop: 50 }} />
+          )
         }
       />
     </SafeAreaView>
@@ -159,15 +149,10 @@ const styles = StyleSheet.create({
   activeTab: { borderBottomWidth: 3, borderBottomColor: '#008102' },
   tabText: { fontSize: 16, color: '#6B7280', fontWeight: '500' },
   activeTabText: { color: '#008102', fontWeight: '700' },
-  controls: { flexDirection: 'row', padding: 16, gap: 12 },
-  controlBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 },
-  controlText: { fontSize: 14, color: '#111827' },
-  warningBanner: { backgroundColor: '#FEF2F2', paddingVertical: 12, paddingHorizontal: 16, marginBottom: 8 },
-  warningText: { color: '#EF4444', fontSize: 13, textAlign: 'center' },
   listContent: { padding: 16 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#F3F4F6', marginBottom: 16, overflow: 'hidden' },
+  card: { backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#F3F4F6', marginBottom: 16, overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
   cardMain: { flexDirection: 'row', padding: 12 },
-  adImage: { width: 100, height: 100, borderRadius: 8 },
+  adImage: { width: 100, height: 100, borderRadius: 8, backgroundColor: '#F3F4F6' },
   adInfo: { flex: 1, marginLeft: 12 },
   statusHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
@@ -176,8 +161,9 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 11, fontWeight: '600' },
   activeText: { color: '#166534' },
   cancelledText: { color: '#B91C1C' },
-  adTitle: { fontSize: 16, fontWeight: '600', color: '#111827', marginBottom: 2 },
-  adCategory: { fontSize: 13, color: '#6B7280', marginBottom: 8 },
+  adTitle: { fontSize: 15, fontWeight: '600', color: '#111827', marginBottom: 2 },
+  adPrice: { fontSize: 15, fontWeight: '700', color: '#008102', marginBottom: 2 },
+  adLocation: { fontSize: 12, color: '#6B7280', marginBottom: 4 },
   metrics: { fontSize: 12, color: '#6B7280' },
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
   createdText: { fontSize: 13, color: '#6B7280' },
@@ -186,12 +172,9 @@ const styles = StyleSheet.create({
   reactivateButton: { borderWidth: 1, borderColor: '#008102' },
   actionButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
   reactivateButtonText: { color: '#008102' },
-  emptyContainer: { flex: 1, alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
+  emptyContainer: { alignItems: 'center', marginTop: 80, paddingHorizontal: 40 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 8 },
   emptySubtitle: { fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 24 },
-  emptyLink: {
-    marginTop: 8,
-    padding: 10,
-  },
-  emptyLinkText: { fontSize: 16, color: '#008102', fontWeight: '600', textDecorationLine: 'underline' }
+  postBtn: { backgroundColor: '#008102', paddingHorizontal: 32, paddingVertical: 12, borderRadius: 24 },
+  postBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
 });

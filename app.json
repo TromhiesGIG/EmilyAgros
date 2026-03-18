@@ -25,6 +25,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "00ce8bdb-99e0-4363-a50e-e91a9ecee31d"
+      }
+    },
+    "owner": "tromphiesgig"
   }
 }

@@ -4,14 +4,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, { FadeOut, Layout, FadeIn } from 'react-native-reanimated';
 import { RootStackParamList } from '../../../App';
-import { 
-  SocialAuthButton, 
-  PrimaryButton, 
-  DividerWithText, 
-  CustomTextInput, 
-  PasswordInput, 
-  CustomCheckbox 
-} from '../../components/auth';
+import { SocialAuthButton } from '../../components/auth/SocialAuthButton';
+import { PrimaryButton } from '../../components/auth/PrimaryButton';
+import { DividerWithText } from '../../components/auth/DividerWithText';
+import { CustomTextInput } from '../../components/auth/CustomTextInput';
+import { PasswordInput } from '../../components/auth/PasswordInput';
+import { CustomCheckbox } from '../../components/auth/CustomCheckbox';
 import { signInWithGoogle, authService } from '../../services/auth';
 import { sendPhoneOTP, formatNigerianPhone } from '../../services/termiiAuth';
 

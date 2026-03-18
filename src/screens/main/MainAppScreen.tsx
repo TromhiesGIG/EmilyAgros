@@ -2,9 +2,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useAuth } from '../../providers/AuthProvider';
+import { usePresence } from '../../hooks/usePresence';
 
 export const MainAppScreen: React.FC = () => {
   const { user, signOut } = useAuth();
+  usePresence
 
   const handleSignOut = async () => {
     Alert.alert(

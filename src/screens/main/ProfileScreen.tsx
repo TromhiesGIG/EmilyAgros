@@ -1,5 +1,5 @@
 // src/screens/main/ProfileScreen.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -23,15 +23,32 @@ import {
   MessageCircle,
   ShieldCheck
 } from 'lucide-react-native';
+import { useAuth } from '../../providers/AuthProvider'; // Real Auth
+import { useSyncData } from '../../hooks/useSyncData'; // Real Data Sync
+import { useIsFocused } from '@react-navigation/native';
 
 export const ProfileScreen = ({ navigation }: any) => {
+  const { user } = useAuth(); // Access live auth session
+  const { walletData, refresh, myAds, savedAds, profileData, loading } = useSyncData();
+  const isFocused = useIsFocused();
   
-  const ActivityCard = ({ icon: Icon, title, onPress }: any) => (
+
+  // This ensures the balance refreshes every time you navigate to the "More" page
+  useEffect(() => {
+    if (isFocused) {
+      refresh();
+    }
+  }, [isFocused]);
+
+  const ActivityCard = ({ icon: Icon, title, onPress, subtitle }: any) => (
     <TouchableOpacity style={styles.card} onPress={onPress}>
       <View style={styles.iconCircle}>
         <Icon size={24} color="#111827" />
       </View>
-      <Text style={styles.cardTitle}>{title}</Text>
+      <View>
+        <Text style={styles.cardTitle}>{title}</Text>
+        {subtitle && <Text style={styles.cardSubtitle}>{subtitle}</Text>}
+      </View>
     </TouchableOpacity>
   );
 
@@ -48,18 +65,31 @@ export const ProfileScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header Section */}
+        {/* Header Section - Now Live */}
         <View style={styles.header}>
           <Text style={styles.headerMainTitle}>Your Space</Text>
           <View style={styles.profileInfo}>
             <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=1974&auto=format&fit=crop' }} 
+              source={{ 
+                uri: profileData?.avatar_url || user?.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=1974&auto=format&fit=crop' 
+              }} 
               style={styles.avatar} 
             />
-            <View>
-              <Text style={styles.userName}>Bambo Temidire</Text>
-              <Text style={styles.userEmail}>bambodire@gmail.com</Text>
+            <View style={styles.profileInfo}>
+      {loading ? (
+        // Skeleton Loader for Name
+        <View style={[styles.skeleton, { width: 150, height: 20 }]} />
+          ) : (
+          <View>
+              <Text style={styles.userName}>
+                {profileData?.full_name || 'Agro Member'}
+              </Text>
+              <Text style={styles.userEmail}>
+                {user?.email || 'No email found'}
+              </Text>
             </View>
+          )}
+        </View>
           </View>
         </View>
 
@@ -67,20 +97,25 @@ export const ProfileScreen = ({ navigation }: any) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Activity</Text>
           <View style={styles.grid}>
-            <ActivityCard icon={FileText} title="My Ads" onPress={() => {}} />
-            <ActivityCard icon={Wallet} title="My Wallet" onPress={() => {}} />
-            <ActivityCard icon={Bell} title="Notifications" onPress={() => {}} />
-            <ActivityCard icon={Bookmark} title="Saved" onPress={() => {}} />
-            <ActivityCard icon={Users} title="Follows" onPress={() => {}} />
-            <ActivityCard icon={Diamond} title="Subscriptions" onPress={() => {}} />
+            <ActivityCard icon={FileText} title="My Ads" onPress={() => navigation.navigate('MyAds')} />
+            <ActivityCard 
+              icon={Wallet} 
+              title="My Wallet" 
+              subtitle={`₦${walletData.balance.toLocaleString()}`} // Live balance
+              onPress={() => navigation.navigate('MyWallet')} 
+            />
+            <ActivityCard icon={Bell} title="Notifications" onPress={() => navigation.navigate('ManageNotifications')} />
+            <ActivityCard icon={Bookmark} title="Saved" onPress={() => navigation.navigate('SavedItems')} />
+            <ActivityCard icon={Users} title="Follows" onPress={() => navigation.navigate('Follows')} />
+            <ActivityCard icon={Diamond} title="Subscriptions" onPress={() => navigation.navigate('Subscriptions')} />
           </View>
         </View>
 
         {/* Personal Section */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Personal</Text>
-          <NavItem icon={User} title="Account Settings" onPress={() => {}} />
-          <NavItem icon={Settings} title="General Settings" onPress={() => {}} />
+          <NavItem icon={User} title="Account Settings" onPress={() => navigation.navigate('AccountSettings')} />
+          <NavItem icon={Settings} title="General Settings" onPress={() => navigation.navigate('GeneralSettings')} />
         </View>
 
         {/* Support Section */}
@@ -91,7 +126,6 @@ export const ProfileScreen = ({ navigation }: any) => {
           <NavItem icon={ShieldCheck} title="Terms and Conditions" onPress={() => {}} />
         </View>
 
-        {/* Version Footer */}
         <Text style={styles.versionText}>App version 1.0.0</Text>
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -106,14 +140,20 @@ const styles = StyleSheet.create({
   profileInfo: { flexDirection: 'row', alignItems: 'center' },
   avatar: { width: 60, height: 60, borderRadius: 30, marginRight: 15 },
   userName: { fontSize: 18, fontWeight: '600', color: '#111827' },
+  skeleton: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
   userEmail: { fontSize: 14, color: '#6B7280' },
   section: { marginTop: 24, paddingHorizontal: 20 },
   sectionTitle: { fontSize: 16, fontWeight: '600', color: '#111827', marginBottom: 16 },
   sectionLabel: { fontSize: 14, fontWeight: '500', color: '#6B7280', marginBottom: 12, backgroundColor: '#F9FAFB', padding: 8, marginHorizontal: -20, paddingLeft: 20 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  card: { width: '48%', backgroundColor: '#F9FAFB', padding: 16, borderRadius: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' },
-  iconCircle: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  cardTitle: { fontSize: 14, fontWeight: '500', color: '#111827' },
+  card: { width: '48%', backgroundColor: '#F9FAFB', padding: 12, borderRadius: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' },
+  iconCircle: { width: 40, height: 40, borderRadius: 8, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  cardTitle: { fontSize: 13, fontWeight: '600', color: '#111827' },
+  cardSubtitle: { fontSize: 11, color: '#008102', fontWeight: '700' },
   navItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   navLeft: { flexDirection: 'row', alignItems: 'center' },
   navTitle: { marginLeft: 12, fontSize: 16, color: '#111827' },

@@ -21,7 +21,6 @@ import {
 } from 'lucide-react-native';
 
 export const GeneralSettingsScreen = ({ navigation }: any) => {
-  // Toggle states based on your "General Settings New Iteration" design
   const [allowMessaging, setAllowMessaging] = useState(true);
   const [allowFeedback, setAllowFeedback] = useState(true);
 
@@ -32,12 +31,9 @@ export const GeneralSettingsScreen = ({ navigation }: any) => {
       activeOpacity={showSwitch ? 1 : 0.7}
     >
       <View style={styles.leftContent}>
-        <View style={styles.iconBox}>
-          <Icon size={22} color="#008102" />
-        </View>
+        <View style={styles.iconBox}><Icon size={22} color="#008102" /></View>
         <Text style={styles.title}>{title}</Text>
       </View>
-      
       {showSwitch ? (
         <Switch 
           value={value} 
@@ -53,7 +49,6 @@ export const GeneralSettingsScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <ArrowLeft size={24} color="#111827" />
@@ -62,8 +57,7 @@ export const GeneralSettingsScreen = ({ navigation }: any) => {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.container}>
-        {/* Direct Toggle Section */}
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
           <SettingRow 
             icon={MessageSquare} 
@@ -86,7 +80,6 @@ export const GeneralSettingsScreen = ({ navigation }: any) => {
           />
         </View>
 
-        {/* Permissions & System Section */}
         <View style={styles.section}>
           <SettingRow 
             icon={MapPin} 
@@ -100,18 +93,9 @@ export const GeneralSettingsScreen = ({ navigation }: any) => {
           />
         </View>
 
-        {/* Information Section */}
         <View style={styles.section}>
-          <SettingRow 
-            icon={Info} 
-            title="About EmilyAgros" 
-            onPress={() => {}} 
-          />
-          <SettingRow 
-            icon={Star} 
-            title="Rate us" 
-            onPress={() => {}} 
-          />
+          <SettingRow icon={Info} title="About EmilyAgros" onPress={() => {}} />
+          <SettingRow icon={Star} title="Rate us" onPress={() => {}} />
         </View>
       </ScrollView>
     </SafeAreaView>

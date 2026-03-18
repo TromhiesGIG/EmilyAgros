@@ -1,71 +1,109 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  Image, 
-  StyleSheet, 
-  Linking,
-  SafeAreaView 
+// src/screens/main/HomeScreen.tsx
+import React, { useEffect, useState } from 'react';
+import {
+  View, Text, ScrollView, TouchableOpacity, Image, StyleSheet,
+  Linking, SafeAreaView, ActivityIndicator, RefreshControl
 } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { ChevronRight, LayoutGrid } from 'lucide-react-native'; 
-import { HomeStackParamList } from '../../navigation/types';
+import { ChevronRight, LayoutGrid } from 'lucide-react-native';
 import { Carousel } from '../../components/Carousel';
 import { CategoryItem } from '../../components/CategoryItem';
 import { ProductCard } from '../../components/ProductCard';
-import { getFeaturedCategories, trendingProducts } from '../../data/mockData';
+import { supabase } from '../../services/supabase';
+import { CATEGORIES } from '../../data/categoryConfig';
 
-type HomeScreenNavigationProp = StackNavigationProp<HomeStackParamList, 'Home'>;
+export const HomeScreen = ({ navigation }: any) => {
+  const [trendingAds, setTrendingAds] = useState<any[]>([]);
+  const [categories, setCategories] = useState(CATEGORIES);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-interface HomeScreenProps {
-  navigation: HomeScreenNavigationProp;
-}
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch live ads from products table
+      const { data: adsData, error: adsError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('status', 'Active')
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const featuredCategories = getFeaturedCategories();
+      if (!adsError) setTrendingAds(adsData || []);
+
+      // Fetch ad counts per category
+      const { data: countData, error: countError } = await supabase
+        .from('products')
+        .select('category_id')
+        .eq('status', 'Active');
+
+      if (!countError && countData) {
+        // Count ads per category
+        const countMap: Record<number, number> = {};
+        countData.forEach((row: any) => {
+          if (row.category_id) {
+            countMap[row.category_id] = (countMap[row.category_id] || 0) + 1;
+          }
+        });
+
+        // Update categories with live counts
+        const updatedCategories = CATEGORIES.map(cat => ({
+          ...cat,
+          adCount: countMap[cat.id] || 0,
+        }));
+        setCategories(updatedCategories);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+    setLoading(false);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Only show featured categories (first 8) on home screen
+  const featuredCategories = categories.slice(0, 8);
 
   return (
-    // 1. Replaced ScrollView/Header with SafeAreaView
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        
-        {/* Carousel Banner */}
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#008102']} />
+        }
+      >
         <Carousel />
 
-        {/* How To Cards */}
+        {/* How To Section */}
         <View style={styles.howToSection}>
-          {/* 2. Fixed Nested Touchable: Outer card is now the button */}
-          <TouchableOpacity 
-            style={styles.howToCard} 
-            activeOpacity={0.7}
-            onPress={() => Linking.openURL('https://youtu.be/tnv1IrkUPts?si=kmMzyJcF4LCVsDFt')}
+          <TouchableOpacity
+            style={styles.howToCard}
+            onPress={() => Linking.openURL('https://youtu.be/tnv1IrkUPts')}
           >
             <Image source={require('../../../assets/sell.png')} style={styles.howToIcon} />
-            
-            {/* 2. Fixed Nested Touchable: Inner button is now a View */}
             <View style={styles.howToButton}>
               <Text style={styles.howToText}>How to Sell</Text>
-              <ChevronRight size={20} color="#6B7280" />
+              <ChevronRight size={18} color="#6B7280" />
             </View>
-
           </TouchableOpacity>
-          
-          {/* 2. Fixed Nested Touchable: Outer card is now the button */}
-          <TouchableOpacity 
-            style={styles.howToCard} 
-            activeOpacity={0.7}
-            onPress={() => Linking.openURL('https://youtu.be/Mgqi9CW6XGc?si=Lnew0E-PHl9JvkEJ')}
+
+          <TouchableOpacity
+            style={styles.howToCard}
+            onPress={() => Linking.openURL('https://youtu.be/Mgqi9CW6XGc')}
           >
             <Image source={require('../../../assets/buy.png')} style={styles.howToIcon} />
-            
-            {/* 2. Fixed Nested Touchable: Inner button is now a View */}
             <View style={styles.howToButton}>
               <Text style={styles.howToText}>How to Buy</Text>
-              <ChevronRight size={20} color="#6B7280" />
+              <ChevronRight size={18} color="#6B7280" />
             </View>
-
           </TouchableOpacity>
         </View>
 
@@ -73,9 +111,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Categories</Text>
-            <TouchableOpacity style={styles.seeAllButton} onPress={() => navigation.navigate('AllCategories')}>
+            <TouchableOpacity
+              style={styles.seeAllButton}
+              onPress={() => navigation.navigate('AllCategories')}
+            >
               <Text style={styles.seeAllText}>See all</Text>
-              <ChevronRight size={20} color="#008102" />
+              <ChevronRight size={18} color="#008102" />
             </TouchableOpacity>
           </View>
           <View style={styles.categoriesGrid}>
@@ -83,33 +124,42 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               <CategoryItem
                 key={category.id}
                 category={category}
-                onPress={() => {
-                  console.log('Category pressed:', category.name);
-                }}
+                onPress={() => navigation.navigate('CategoryAds', { category })}
               />
             ))}
           </View>
         </View>
 
-        {/* Trending Section */}
+        {/* Trending Ads Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Trending</Text>
-            {/* 4. Added Grid/List Toggle Icon */}
-            <TouchableOpacity onPress={() => console.log('Toggle grid/list view')}>
-              <LayoutGrid size={24} color="#4B5768" fill="#4B5768" />
-            </TouchableOpacity>
+            <Text style={styles.sectionTitle}>Trending Ads</Text>
+            <LayoutGrid size={24} color="#4B5768" />
           </View>
-          {trendingProducts.map(product => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onPress={() => navigation.navigate('ProductDetail', { product })}
-            />
-          ))}
+
+          {loading ? (
+            <ActivityIndicator color="#008102" style={{ marginVertical: 20 }} />
+          ) : trendingAds.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No ads yet. Be the first to post!</Text>
+              <TouchableOpacity
+                style={styles.postAdBtn}
+                onPress={() => navigation.navigate('SellTab')}
+              >
+                <Text style={styles.postAdText}>Post an Ad</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            trendingAds.map(ad => (
+              <ProductCard
+                key={ad.id}
+                product={ad}
+                onPress={() => navigation.navigate('AdDetails', { adId: ad.id })}
+              />
+            ))
+          )}
         </View>
 
-        {/* Bottom Padding */}
         <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
@@ -117,82 +167,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F7F8F9',
-  },
-  container: {
-    flex: 1,
-  },
-  howToSection: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 24,
-    marginTop: 16,
-    gap: 12,
-  },
-  howToCard: {
-    flex: 1,
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  howToIcon: {
-    width: 40,
-    height: 40,
-  },
-  howToButton: {
-    flexDirection: 'row',     
-    alignItems: 'center',
-    padding: 16,
-  },
-  howToText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827', 
-    marginRight: 4, 
-  },
-  section: {
-    marginBottom: 24,
-    backgroundColor: '#FFFFFF', 
-    paddingVertical: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#0D0F11',
-    letterSpacing: -0.32,
-    lineHeight: 25,
-  },
-  seeAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: '#008102',
-    fontWeight: '400',
-    letterSpacing: -0.32,
-    lineHeight: 20,
-  },
-  categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 8,
-  },
-  bottomPadding: {
-    height: 20,
-  },
+  safeArea: { flex: 1, backgroundColor: '#F7F8F9' },
+  container: { flex: 1 },
+  howToSection: { flexDirection: 'row', paddingHorizontal: 16, marginVertical: 16, gap: 12 },
+  howToCard: { flex: 1, backgroundColor: '#FFFFFF', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center' },
+  howToIcon: { width: 32, height: 32 },
+  howToButton: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  howToText: { fontSize: 13, fontWeight: '600', color: '#111827', marginRight: 2 },
+  section: { marginBottom: 12, backgroundColor: '#FFFFFF', paddingVertical: 16 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0D0F11' },
+  seeAllButton: { flexDirection: 'row', alignItems: 'center' },
+  seeAllText: { fontSize: 14, color: '#008102' },
+  categoriesGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 8 },
+  emptyContainer: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 16 },
+  emptyText: { fontSize: 15, color: '#6B7280', marginBottom: 16, textAlign: 'center' },
+  postAdBtn: { backgroundColor: '#008102', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 20 },
+  postAdText: { color: '#FFFFFF', fontWeight: '600', fontSize: 15 },
+  bottomPadding: { height: 40 },
 });

@@ -19,5 +19,6 @@ export const SellStackNavigator: React.FC = () => {
       <Stack.Screen name="CategorySelection" component={CategorySelectionScreen} />
       <Stack.Screen name="SubcategorySelection" component={SubcategorySelectionScreen} />
     </Stack.Navigator>
+    
   );
 };

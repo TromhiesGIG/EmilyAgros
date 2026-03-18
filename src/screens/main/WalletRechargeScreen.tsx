@@ -1,167 +1,199 @@
-// src/screens/main/WalletRechargeScreen.tsx
 import React, { useState } from 'react';
 import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  FlatList
+  View, Text, StyleSheet, TouchableOpacity, SafeAreaView, 
+  TextInput, Alert, ActivityIndicator 
 } from 'react-native';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft} from 'lucide-react-native';
+import PayWithFlutterwave from 'flutterwave-react-native';
+import { supabase } from '../../services/supabase';
+import { useAuth } from '../../providers/AuthProvider';
+import { useSyncData } from '../../hooks/useSyncData';
 
 export const WalletRechargeScreen = ({ navigation }: any) => {
-  const [amount, setAmount] = useState('0');
-  const quickAmounts = ['1,000', '2,000', '5,000', '10,000', '15,000', '20,000'];
+  console.log('🔵 1. WalletRechargeScreen component rendering');
+  
+  const { user } = useAuth();
+  const { refresh } = useSyncData();
+  const [amount, setAmount] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [currentTxRef, setCurrentTxRef] = useState('');
 
-  // Validation logic based on your "Wallet Recharge 2" design
-  const numericAmount = parseInt(amount.replace(/,/g, ''), 10) || 0;
-  const isError = numericAmount > 0 && numericAmount < 1000;
-  const isValid = numericAmount >= 1000;
+  console.log('🔵 2. State values:', { amount, loading, currentTxRef });
 
-  const handleQuickSelect = (val: string) => {
-    setAmount(val);
+  const generateTransactionRef = () => `FLW-${Date.now()}-${user?.id?.slice(0, 5)}`;
+
+  const handlePaymentSuccess = async (data: any) => {
+    console.log('🟢 handlePaymentSuccess called with:', data);
+    setLoading(true);
+    
+    const { error } = await supabase
+      .from('transactions')
+      .update({ 
+        status: 'Successful', 
+        flw_id: data.transaction_id.toString() 
+      })
+      .eq('tx_ref', data.tx_ref);
+
+    if (error) {
+      console.error("❌ Ledger Update Error:", error);
+      Alert.alert("Sync Issue", "Payment was successful but balance update failed. Please contact support.");
+    } else {
+      console.log('✅ Payment success handler completed');
+      await refresh();
+      Alert.alert("Success", "Wallet recharged successfully!", [
+        { text: "View Wallet", onPress: () => navigation.goBack() }
+      ]);
+    }
+    setLoading(false);
   };
 
-  const handleConfirm = () => {
-    if (isValid) {
-      // Navigation to payment gateway or summary would go here
-      console.log(`Processing recharge for: ₦${amount}`);
+  const createPendingTransaction = async (txRef: string) => {
+    console.log('🟡 createPendingTransaction called with txRef:', txRef);
+    if (!user) return false;
+
+    const { error } = await supabase.from('transactions').insert({
+      user_id: user.id,
+      amount: parseFloat(amount),
+      type: 'recharge',
+      status: 'Pending',
+      method: 'Flutterwave',
+      tx_ref: txRef
+    });
+
+    if (error) {
+      console.error("❌ Supabase Insertion Error:", error.message);
+      console.error("❌ Error Code:", error.code);
+      return false;
+    }
+
+    console.log('✅ Transaction created successfully');
+    return true;
+  };
+
+  const handleInitiatePayment = async () => {
+    console.log('🟡 handleInitiatePayment called');
+    console.log('🟡 Current state - amount:', amount, 'loading:', loading);
+    
+    if (!amount || loading) {
+      console.log('⚠️ Returning early - validation failed');
+      return;
+    }
+    
+    console.log('🟡 Setting loading to true...');
+    setLoading(true);
+    
+    const txRef = generateTransactionRef();
+    console.log('🟡 Generated txRef:', txRef);
+    
+    const success = await createPendingTransaction(txRef);
+    console.log('🟡 Transaction creation result:', success);
+    
+    if (success) {
+      console.log('🟡 Setting currentTxRef to:', txRef);
+      setCurrentTxRef(txRef);
+    } else {
+      console.log('❌ Transaction creation failed');
+      Alert.alert("Error", "Could not initialize transaction.");
+      setLoading(false);
     }
   };
 
+  console.log('🔵 3. About to render JSX - currentTxRef:', currentTxRef);
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <ArrowLeft size={24} color="#111827" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Wallet recharge</Text>
-          <View style={{ width: 24 }} />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <ArrowLeft size={24} color="#111827" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Recharge Wallet</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <View style={styles.container}>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Amount to Recharge (₦)</Text>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.currencyPrefix}>₦</Text>
+            <TextInput 
+              style={styles.input}
+              value={amount}
+              onChangeText={setAmount}
+              placeholder="e.g. 5000"
+              keyboardType="numeric"
+            />
+          </View>
         </View>
 
-        <View style={styles.container}>
-          {/* Amount Input Card */}
-          <View style={[styles.inputCard, isError && styles.inputCardError]}>
-            <Text style={styles.label}>Amount</Text>
-            <View style={styles.inputWrapper}>
-              <Text style={[styles.currencyPrefix, isError && styles.errorText]}>₦</Text>
-              <TextInput 
-                style={[styles.input, isError && styles.errorText]}
-                value={amount}
-                onChangeText={(text) => setAmount(text.replace(/[^0-9,]/g, ''))}
-                keyboardType="numeric"
-                placeholder="0"
-                placeholderTextColor={isError ? '#EF4444' : '#9CA3AF'}
-              />
-            </View>
-          </View>
-
-          {/* Error Message */}
-          {isError && (
-            <Text style={styles.errorMessage}>
-              The minimum amount you can recharge is ₦1000
-            </Text>
-          )}
-
-          {/* Quick Select Grid */}
-          <View style={styles.grid}>
-            {quickAmounts.map((item) => (
-              <TouchableOpacity 
-                key={item} 
-                style={[
-                  styles.quickBtn, 
-                  amount === item && styles.quickBtnSelected
-                ]}
-                onPress={() => handleQuickSelect(item)}
-              >
-                <Text style={[
-                  styles.quickBtnText,
-                  amount === item && styles.quickBtnTextSelected
-                ]}>
-                  ₦{item}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.spacer} />
-
-          {/* Confirm Button */}
+        {currentTxRef ? (
+          (console.log('🔵 4. Rendering PayWithFlutterwave'),
+          <PayWithFlutterwave
+            onRedirect={(data) => {
+              console.log('🟣 onRedirect called with data:', data);
+              console.log('🟣 Resetting currentTxRef');
+              setCurrentTxRef('');
+              
+              if (data.status === 'successful') {
+                console.log('🟣 Payment successful, calling handlePaymentSuccess');
+                handlePaymentSuccess(data);
+              } else {
+                console.log('🟣 Payment not successful, status:', data.status);
+                Alert.alert("Cancelled", "Payment was not completed.");
+                setLoading(false);
+              }
+            }}
+            options={{
+              tx_ref: currentTxRef,
+              authorization: process.env.EXPO_PUBLIC_FLW_PUBLIC_KEY || '',
+              amount: parseFloat(amount || '0'),
+              currency: 'NGN',
+              customer: {
+                email: user?.email || '',
+                name: user?.user_metadata?.full_name || 'Agro Member',
+                phonenumber: user?.user_metadata?.phone_number || ''
+              },
+              customizations: {
+                title: 'EmilyAgros Wallet',
+                description: 'Recharge your in-app wallet',
+                logo: 'https://your-logo-url.com/logo.png',
+              },
+            }}
+          />)
+        ) : (
+          <>
+          {console.log('🔵 5. Rendering custom Pay Now button')}
           <TouchableOpacity 
-            style={[styles.confirmBtn, !isValid && styles.confirmBtnDisabled]}
-            onPress={handleConfirm}
-            disabled={!isValid}
+            style={[styles.payBtn, (!amount || loading) && styles.disabledBtn]} 
+            onPress={() => {
+              console.log('🔴 Pay Now button pressed');
+              handleInitiatePayment();
+            }}
+            disabled={!amount || loading}
           >
-            <Text style={[styles.confirmBtnText, !isValid && styles.confirmBtnTextDisabled]}>
-              Confirm
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.payBtnText}>Pay Now</Text>
+            )}
           </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+          </>
+        )}
+      </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  container: { flex: 1, padding: 20 },
-  inputCard: {
-    padding: 20,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    marginBottom: 8,
-  },
-  inputCardError: { borderColor: '#EF4444' },
-  label: { fontSize: 14, color: '#6B7280', marginBottom: 12 },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center' },
-  currencyPrefix: { fontSize: 32, fontWeight: '700', color: '#111827', marginRight: 8 },
-  input: { flex: 1, fontSize: 32, fontWeight: '700', color: '#111827', padding: 0 },
-  errorText: { color: '#EF4444' },
-  errorMessage: { color: '#EF4444', fontSize: 13, marginBottom: 24, fontWeight: '500' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 20 },
-  quickBtn: { 
-    width: '31%', 
-    height: 44, 
-    backgroundColor: '#F3F4F6', 
-    borderRadius: 8, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginBottom: 12 
-  },
-  quickBtnSelected: { backgroundColor: '#DCFCE7', borderWidth: 1, borderColor: '#008102' },
-  quickBtnText: { fontSize: 14, color: '#4B5563', fontWeight: '500' },
-  quickBtnTextSelected: { color: '#166534', fontWeight: '700' },
-  spacer: { flex: 1 },
-  confirmBtn: {
-    height: 56,
-    backgroundColor: '#008102',
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  confirmBtnDisabled: { backgroundColor: '#A7D7A9' }, // Light green/grayed out per design
-  confirmBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
-  confirmBtnTextDisabled: { color: '#FFFFFF' },
+  container: { padding: 20 },
+  inputGroup: { marginBottom: 32 },
+  label: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 12 },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 16, height: 60 },
+  currencyPrefix: { fontSize: 20, fontWeight: '700', color: '#111827', marginRight: 8 },
+  input: { flex: 1, fontSize: 20, fontWeight: '700', color: '#111827' },
+  payBtn: { backgroundColor: '#008102', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
+  payBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  disabledBtn: { backgroundColor: '#A3E635' }
 });

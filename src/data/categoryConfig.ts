@@ -1,108 +1,205 @@
-import { Category, Subcategory } from '../navigation/types';
+import { Category, SubCategory } from '../navigation/types';
 import { DropdownOption } from '../types/sellForm';
 
 // All 15 categories with metadata
 export const CATEGORIES: Category[] = [
-  { id: 1, name: 'Trending', slug: 'trending', icon: require('../../assets/trending.png'), featured: true, hasSubcategories: false },
-  { id: 2, name: 'Livestock & Pets', slug: 'livestock-pets', icon: require('../../assets/livestock.png'), featured: true, hasSubcategories: true },
-  { id: 3, name: 'Services', slug: 'services', icon: require('../../assets/services.png'), featured: true, hasSubcategories: true },
-  { id: 4, name: 'Food, Fruits and Vegetables', slug: 'food-fruits-vegetables', icon: require('../../assets/fruit.png'), featured: true, hasSubcategories: true },
-  { id: 5, name: 'Animal Feed', slug: 'animal-feed', icon: require('../../assets/feed.png'), featured: true, hasSubcategories: true },
-  { id: 6, name: 'Tractors/Farm Equipments', slug: 'tractors-farm-equipments', icon: require('../../assets/tractors.png'), featured: true, hasSubcategories: false },
-  { id: 7, name: 'Fertilizers', slug: 'fertilizers', icon: require('../../assets/fertilizer.png'), featured: true, hasSubcategories: true },
-  { id: 8, name: 'Animal Accessories', slug: 'animal-accessories', icon: require('../../assets/accessories.png'), featured: true, hasSubcategories: true },
-  { id: 9, name: 'Seedlings', slug: 'seedlings', icon: require('../../assets/seed.png'), featured: false, hasSubcategories: true },
-  { id: 10, name: 'Animal Pharmacy', slug: 'animal-pharmacy', icon: require('../../assets/pharmacy.png'), featured: false, hasSubcategories: true },
-  { id: 11, name: 'Animal Mating', slug: 'animal-mating', icon: require('../../assets/Animal.png'), featured: false, hasSubcategories: true },
-  { id: 12, name: 'Agro Chemicals', slug: 'agro-chemicals', icon: require('../../assets/chemicals.png'), featured: false, hasSubcategories: false },
-  { id: 13, name: 'Horticulture', slug: 'horticulture', icon: require('../../assets/hort.png'), featured: false, hasSubcategories: true },
-  { id: 14, name: 'Agro Loan', slug: 'agro-loan', icon: require('../../assets/loan.png'), featured: false, hasSubcategories: false },
-  { id: 15, name: 'Agro Insurance', slug: 'agro-insurance', icon: require('../../assets/insurance.png'), featured: false, hasSubcategories: false },
+  { 
+    id: 1, 
+    name: 'Trending', 
+    slug: 'trending', 
+    icon: require('../../assets/trending.png'), 
+    subcategories: []
+  },
+  { 
+    id: 2, 
+    name: 'Livestock & Pets', 
+    slug: 'livestock-pets', 
+    icon: require('../../assets/livestock.png'), 
+    subcategories: []
+  },
+  { 
+    id: 3, 
+    name: 'Services', 
+    slug: 'services', 
+    icon: require('../../assets/services.png'), 
+    subcategories: []
+  },
+  { 
+    id: 4, 
+    name: 'Food, Fruits and Vegetables', 
+    slug: 'food-fruits-vegetables', 
+    icon: require('../../assets/fruit.png'), 
+    subcategories: []
+  },
+  { 
+    id: 5, 
+    name: 'Animal Feed', 
+    slug: 'animal-feed', 
+    icon: require('../../assets/feed.png'), 
+    subcategories: []
+  },
+  { 
+    id: 6, 
+    name: 'Tractors/Farm Equipments', 
+    slug: 'tractors-farm-equipments', 
+    icon: require('../../assets/tractors.png'), 
+    subcategories: []
+  },
+  { 
+    id: 7, 
+    name: 'Fertilizers', 
+    slug: 'fertilizers', 
+    icon: require('../../assets/fertilizer.png'), 
+    subcategories: []
+  },
+  { 
+    id: 8, 
+    name: 'Animal Accessories', 
+    slug: 'animal-accessories', 
+    icon: require('../../assets/accessories.png'), 
+    subcategories: []
+  },
+  { 
+    id: 9, 
+    name: 'Seedlings', 
+    slug: 'seedlings', 
+    icon: require('../../assets/seed.png'), 
+    subcategories: []
+  },
+  { 
+    id: 10, 
+    name: 'Animal Pharmacy', 
+    slug: 'animal-pharmacy', 
+    icon: require('../../assets/pharmacy.png'), 
+    subcategories: []
+  },
+  { 
+    id: 11, 
+    name: 'Animal Mating', 
+    slug: 'animal-mating', 
+    icon: require('../../assets/Animal.png'), 
+    subcategories: []
+  },
+  { 
+    id: 12, 
+    name: 'Agro Chemicals', 
+    slug: 'agro-chemicals', 
+    icon: require('../../assets/chemicals.png'), 
+    subcategories: []
+  },
+  { 
+    id: 13, 
+    name: 'Horticulture', 
+    slug: 'horticulture', 
+    icon: require('../../assets/hort.png'), 
+    subcategories: []
+  },
+  { 
+    id: 14, 
+    name: 'Agro Loan', 
+    slug: 'agro-loan', 
+    icon: require('../../assets/loan.png'), 
+    subcategories: []
+  },
+  { 
+    id: 15, 
+    name: 'Agro Insurance', 
+    slug: 'agro-insurance', 
+    icon: require('../../assets/insurance.png'), 
+    subcategories: []
+  },
 ];
 
 // Subcategories per category
-export const SUBCATEGORIES: Record<number, Subcategory[]> = {
+export const SUBCATEGORIES: Record<number, SubCategory[]> = {
   2: [ // Livestock & Pets
-    { id: 201, categoryId: 2, name: 'Dogs', slug: 'dogs' },
-    { id: 202, categoryId: 2, name: 'Cats', slug: 'cats' },
-    { id: 203, categoryId: 2, name: 'Cattle', slug: 'cattle' },
-    { id: 204, categoryId: 2, name: 'Pigs', slug: 'pigs' },
-    { id: 205, categoryId: 2, name: 'Rabbits', slug: 'rabbits' },
-    { id: 206, categoryId: 2, name: 'Fish', slug: 'fish' },
-    { id: 207, categoryId: 2, name: 'Goats', slug: 'goats' },
-    { id: 208, categoryId: 2, name: 'Sheep', slug: 'sheep' },
-    { id: 209, categoryId: 2, name: 'Birds/Poultry', slug: 'birds-poultry' },
-    { id: 210, categoryId: 2, name: 'Snails', slug: 'snails' },
-    { id: 211, categoryId: 2, name: 'Reptiles', slug: 'reptiles' },
-    { id: 212, categoryId: 2, name: 'Others', slug: 'others' },
+    { id: 201, name: 'Dogs', slug: 'dogs' },
+    { id: 202, name: 'Cats', slug: 'cats' },
+    { id: 203, name: 'Cattle', slug: 'cattle' },
+    { id: 204, name: 'Pigs', slug: 'pigs' },
+    { id: 205, name: 'Rabbits', slug: 'rabbits' },
+    { id: 206, name: 'Fish', slug: 'fish' },
+    { id: 207, name: 'Goats', slug: 'goats' },
+    { id: 208, name: 'Sheep', slug: 'sheep' },
+    { id: 209, name: 'Birds/Poultry', slug: 'birds-poultry' },
+    { id: 210, name: 'Snails', slug: 'snails' },
+    { id: 211, name: 'Reptiles', slug: 'reptiles' },
+    { id: 212, name: 'Others', slug: 'others' },
   ],
   3: [ // Services
-    { id: 301, categoryId: 3, name: 'Farm Labor Supply', slug: 'farm-labor-supply' },
-    { id: 302, categoryId: 3, name: 'Equipment Leasing', slug: 'equipment-leasing' },
-    { id: 303, categoryId: 3, name: 'Veterinary Services', slug: 'veterinary-services' },
-    { id: 304, categoryId: 3, name: 'Agricultural Consultancy', slug: 'agricultural-consultancy' },
+    { id: 301, name: 'Farm Labor Supply', slug: 'farm-labor-supply' },
+    { id: 302, name: 'Equipment Leasing', slug: 'equipment-leasing' },
+    { id: 303, name: 'Veterinary Services', slug: 'veterinary-services' },
+    { id: 304, name: 'Agricultural Consultancy', slug: 'agricultural-consultancy' },
   ],
   4: [ // Food, Fruits and Vegetables
-    { id: 401, categoryId: 4, name: 'Fresh Fruits', slug: 'fresh-fruits' },
-    { id: 402, categoryId: 4, name: 'Vegetables', slug: 'vegetables' },
-    { id: 403, categoryId: 4, name: 'Berries', slug: 'berries' },
-    { id: 404, categoryId: 4, name: 'Root plants', slug: 'root-plants' },
-    { id: 405, categoryId: 4, name: 'Grains & Legumes', slug: 'grains-legumes' },
-    { id: 406, categoryId: 4, name: 'Processed Foods', slug: 'processed-foods' },
-    { id: 407, categoryId: 4, name: 'Herbs & Spices', slug: 'herbs-spices' },
+    { id: 401, name: 'Fresh Fruits', slug: 'fresh-fruits' },
+    { id: 402, name: 'Vegetables', slug: 'vegetables' },
+    { id: 403, name: 'Berries', slug: 'berries' },
+    { id: 404, name: 'Root plants', slug: 'root-plants' },
+    { id: 405, name: 'Grains & Legumes', slug: 'grains-legumes' },
+    { id: 406, name: 'Processed Foods', slug: 'processed-foods' },
+    { id: 407, name: 'Herbs & Spices', slug: 'herbs-spices' },
   ],
   5: [ // Animal Feed
-    { id: 501, categoryId: 5, name: 'Poultry', slug: 'poultry' },
-    { id: 502, categoryId: 5, name: 'Cattle', slug: 'cattle' },
-    { id: 503, categoryId: 5, name: 'Fish', slug: 'fish' },
-    { id: 504, categoryId: 5, name: 'Goat and Sheep', slug: 'goat-sheep' },
-    { id: 505, categoryId: 5, name: 'Pet', slug: 'pet' },
+    { id: 501, name: 'Poultry', slug: 'poultry' },
+    { id: 502, name: 'Cattle', slug: 'cattle' },
+    { id: 503, name: 'Fish', slug: 'fish' },
+    { id: 504, name: 'Goat and Sheep', slug: 'goat-sheep' },
+    { id: 505, name: 'Pet', slug: 'pet' },
   ],
   7: [ // Fertilizers
-    { id: 701, categoryId: 7, name: 'Organic', slug: 'organic' },
-    { id: 702, categoryId: 7, name: 'Inorganic', slug: 'inorganic' },
-    { id: 703, categoryId: 7, name: 'NPK', slug: 'npk' },
-    { id: 704, categoryId: 7, name: 'Urea/Ammonium Sulfate', slug: 'urea-ammonium-sulfate' },
-    { id: 705, categoryId: 7, name: 'Compost & Manure', slug: 'compost-manure' },
+    { id: 701, name: 'Organic', slug: 'organic' },
+    { id: 702, name: 'Inorganic', slug: 'inorganic' },
+    { id: 703, name: 'NPK', slug: 'npk' },
+    { id: 704, name: 'Urea/Ammonium Sulfate', slug: 'urea-ammonium-sulfate' },
+    { id: 705, name: 'Compost & Manure', slug: 'compost-manure' },
   ],
   8: [ // Animal Accessories
-    { id: 801, categoryId: 8, name: 'Restraining (Collars & Leashes etc.)', slug: 'restraining' },
-    { id: 802, categoryId: 8, name: 'Feeding Bowls', slug: 'feeding-bowls' },
-    { id: 803, categoryId: 8, name: 'Cages & Crates', slug: 'cages-crates' },
-    { id: 804, categoryId: 8, name: 'Grooming Tools', slug: 'grooming-tools' },
-    { id: 805, categoryId: 8, name: 'Cleaning Items', slug: 'cleaning-items' },
-    { id: 806, categoryId: 8, name: 'Housing Accessories', slug: 'housing-accessories' },
-    { id: 807, categoryId: 8, name: 'Clothing & Identification', slug: 'clothing-identification' },
-    { id: 808, categoryId: 8, name: 'Health Accessories', slug: 'health-accessories' },
+    { id: 801, name: 'Restraining (Collars & Leashes etc.)', slug: 'restraining' },
+    { id: 802, name: 'Feeding Bowls', slug: 'feeding-bowls' },
+    { id: 803, name: 'Cages & Crates', slug: 'cages-crates' },
+    { id: 804, name: 'Grooming Tools', slug: 'grooming-tools' },
+    { id: 805, name: 'Cleaning Items', slug: 'cleaning-items' },
+    { id: 806, name: 'Housing Accessories', slug: 'housing-accessories' },
+    { id: 807, name: 'Clothing & Identification', slug: 'clothing-identification' },
+    { id: 808, name: 'Health Accessories', slug: 'health-accessories' },
   ],
   9: [ // Seedlings
-    { id: 901, categoryId: 9, name: 'Fruit Seedlings', slug: 'fruit-seedlings' },
-    { id: 902, categoryId: 9, name: 'Vegetable Seedlings', slug: 'vegetable-seedlings' },
-    { id: 903, categoryId: 9, name: 'Tree Seedlings', slug: 'tree-seedlings' },
-    { id: 904, categoryId: 9, name: 'Cash Crops', slug: 'cash-crops' },
+    { id: 901, name: 'Fruit Seedlings', slug: 'fruit-seedlings' },
+    { id: 902, name: 'Vegetable Seedlings', slug: 'vegetable-seedlings' },
+    { id: 903, name: 'Tree Seedlings', slug: 'tree-seedlings' },
+    { id: 904, name: 'Cash Crops', slug: 'cash-crops' },
   ],
   10: [ // Animal Pharmacy
-    { id: 1001, categoryId: 10, name: 'Veterinary Drugs', slug: 'veterinary-drugs' },
-    { id: 1002, categoryId: 10, name: 'Vitamins & Supplements', slug: 'vitamins-supplements' },
-    { id: 1003, categoryId: 10, name: 'Dewormers', slug: 'dewormers' },
-    { id: 1004, categoryId: 10, name: 'Vaccines', slug: 'vaccines' },
-    { id: 1005, categoryId: 10, name: 'First Aid', slug: 'first-aid' },
-    { id: 1006, categoryId: 10, name: 'Antibiotics', slug: 'antibiotics' },
+    { id: 1001, name: 'Veterinary Drugs', slug: 'veterinary-drugs' },
+    { id: 1002, name: 'Vitamins & Supplements', slug: 'vitamins-supplements' },
+    { id: 1003, name: 'Dewormers', slug: 'dewormers' },
+    { id: 1004, name: 'Vaccines', slug: 'vaccines' },
+    { id: 1005, name: 'First Aid', slug: 'first-aid' },
+    { id: 1006, name: 'Antibiotics', slug: 'antibiotics' },
   ],
   11: [ // Animal Mating
-    { id: 1101, categoryId: 11, name: 'Stud Services (Dogs, Cats, Cattles, Rams, Horses etc.)', slug: 'stud-services' },
-    { id: 1102, categoryId: 11, name: 'Breeding', slug: 'breeding' },
-    { id: 1103, categoryId: 11, name: 'Artificial Insemination', slug: 'artificial-insemination' },
+    { id: 1101, name: 'Stud Services (Dogs, Cats, Cattles, Rams, Horses etc.)', slug: 'stud-services' },
+    { id: 1102, name: 'Breeding', slug: 'breeding' },
+    { id: 1103, name: 'Artificial Insemination', slug: 'artificial-insemination' },
   ],
   13: [ // Horticulture
-    { id: 1301, categoryId: 13, name: 'Greenhouse Structures', slug: 'greenhouse-structures' },
-    { id: 1302, categoryId: 13, name: 'Greenhouse Equipment', slug: 'greenhouse-equipment' },
-    { id: 1303, categoryId: 13, name: 'Greenhouse Materials', slug: 'greenhouse-materials' },
-    { id: 1304, categoryId: 13, name: 'Greenhouse Crops', slug: 'greenhouse-crops' },
-    { id: 1305, categoryId: 13, name: 'Greenhouse Services', slug: 'greenhouse-services' },
-    { id: 1306, categoryId: 13, name: 'Greenhouse Accessories', slug: 'greenhouse-accessories' },
+    { id: 1301, name: 'Greenhouse Structures', slug: 'greenhouse-structures' },
+    { id: 1302, name: 'Greenhouse Equipment', slug: 'greenhouse-equipment' },
+    { id: 1303, name: 'Greenhouse Materials', slug: 'greenhouse-materials' },
+    { id: 1304, name: 'Greenhouse Crops', slug: 'greenhouse-crops' },
+    { id: 1305, name: 'Greenhouse Services', slug: 'greenhouse-services' },
+    { id: 1306, name: 'Greenhouse Accessories', slug: 'greenhouse-accessories' },
   ],
 };
+
+// Populate subcategories into categories
+CATEGORIES.forEach(category => {
+  if (SUBCATEGORIES[category.id]) {
+    category.subcategories = SUBCATEGORIES[category.id];
+  }
+});
 
 // Dropdown options for various fields
 export const DROPDOWN_OPTIONS = {
@@ -218,77 +315,75 @@ export const DROPDOWN_OPTIONS = {
   ] as DropdownOption[],
 
   cropType: [
-    {label: 'Vegetables', value: 'vegetables'},
-    {label: 'Fruits', value: 'fruits'},
-    {label: 'Grains', value: 'grains'},
-    {label: 'Root Crops', value: 'root_crops'},
-    {label: 'Cash Crops', value: 'cash_crops'},
+    { label: 'Vegetables', value: 'vegetables' },
+    { label: 'Fruits', value: 'fruits' },
+    { label: 'Grains', value: 'grains' },
+    { label: 'Root Crops', value: 'root_crops' },
+    { label: 'Cash Crops', value: 'cash_crops' },
   ] as DropdownOption[],
 
   serviceType: [
-    {label: 'Farm Labor', value: 'farm_labor'},
-    {label: 'Equipment Rental', value: 'equipment_rental'},
-    {label: 'Veterinary Care', value: 'veterinary_care'},
-    {label: 'Agricultural Consulting', value: 'agricultural_consulting'},
-    {label: 'Irrigation Services', value: 'irrigation_services'},
+    { label: 'Farm Labor', value: 'farm_labor' },
+    { label: 'Equipment Rental', value: 'equipment_rental' },
+    { label: 'Veterinary Care', value: 'veterinary_care' },
+    { label: 'Agricultural Consulting', value: 'agricultural_consulting' },
+    { label: 'Irrigation Services', value: 'irrigation_services' },
   ] as DropdownOption[],
 
   pricingBasis: [
-    {label: 'Per Hour', value: 'per_hour'},
-    {label: 'Per Day', value: 'per_day'},
-    {label: 'Per Week', value: 'per_week'},
-    {label: 'Per Project', value: 'per_project'},
-    {label: 'Per Visit', value: 'per_visit'},
+    { label: 'Per Hour', value: 'per_hour' },
+    { label: 'Per Day', value: 'per_day' },
+    { label: 'Per Week', value: 'per_week' },
+    { label: 'Per Project', value: 'per_project' },
+    { label: 'Per Visit', value: 'per_visit' },
   ] as DropdownOption[],
 };
 
 export const LIVESTOCK_BREEDS: Record<string, DropdownOption[]> = {
   dogs: [
-    {label: 'Rottweiler', value: 'rottweiler'},
-    {label: 'German Shepherd', value: 'german_shepherd'},
-    {label: 'Bulldog', value: 'bulldog'},
-    {label: 'Boerboel', value: 'boerboel'},
-    {label: 'Lhasa Apso', value: 'lhasa_apso'},
+    { label: 'Rottweiler', value: 'rottweiler' },
+    { label: 'German Shepherd', value: 'german_shepherd' },
+    { label: 'Bulldog', value: 'bulldog' },
+    { label: 'Boerboel', value: 'boerboel' },
+    { label: 'Lhasa Apso', value: 'lhasa_apso' },
   ],
   cats: [
-    {label: 'Persian', value: 'persian'},
-    {label: 'Siamese', value: 'siamese'},
-    {label: 'Local', value: 'local'},
+    { label: 'Persian', value: 'persian' },
+    { label: 'Siamese', value: 'siamese' },
+    { label: 'Local', value: 'local' },
   ],
   cattle: [
-    {label: 'Brahman', value: 'brahman'},
-    {label: 'Angus', value: 'angus'},
-    {label: 'White Fulani', value: 'white_fulani'},
-    {label: 'Red Bororo', value: 'red_bororo'},
+    { label: 'Brahman', value: 'brahman' },
+    { label: 'Angus', value: 'angus' },
+    { label: 'White Fulani', value: 'white_fulani' },
+    { label: 'Red Bororo', value: 'red_bororo' },
   ],
   pigs: [
-    {label: 'Large White', value: 'large_white'},
-    {label: 'Duroc', value: 'duroc'},
-    {label: 'Landrace', value: 'landrace'},
+    { label: 'Large White', value: 'large_white' },
+    { label: 'Duroc', value: 'duroc' },
+    { label: 'Landrace', value: 'landrace' },
   ],
   goats: [
-    {label: 'Boer', value: 'boer'},
-    {label: 'West African Dwarf', value: 'west_african_dwarf'},
-    {label: 'Kalahari Red', value: 'kalahari_red'},
+    { label: 'Boer', value: 'boer' },
+    { label: 'West African Dwarf', value: 'west_african_dwarf' },
+    { label: 'Kalahari Red', value: 'kalahari_red' },
   ],
   sheep: [
-    {label: 'West African Dwarf', value: 'west_african_dwarf'},
-    {label: 'Balami', value: 'balami'},
-    {label: 'Uda', value: 'uda'},
+    { label: 'West African Dwarf', value: 'west_african_dwarf' },
+    { label: 'Balami', value: 'balami' },
+    { label: 'Uda', value: 'uda' },
   ],
   'birds-poultry': [
-    {label: 'Broiler', value: 'broiler'},
-    {label: 'Layer', value: 'layer'},
-    {label: 'Cockerel', value: 'cockerel'},
-    {label: 'Turkey', value: 'turkey'},
-    {label: 'Ostrich', value: 'ostrich'},
+    { label: 'Broiler', value: 'broiler' },
+    { label: 'Layer', value: 'layer' },
+    { label: 'Cockerel', value: 'cockerel' },
+    { label: 'Turkey', value: 'turkey' },
+    { label: 'Ostrich', value: 'ostrich' },
   ],
-  // ... (add more for other subcategories as needed)
 };
 
-
 // Helper function to get subcategories by category ID
-export const getSubcategoriesByCategory = (categoryId: number): Subcategory[] => {
+export const getSubcategoriesByCategory = (categoryId: number): SubCategory[] => {
   return SUBCATEGORIES[categoryId] || [];
 };
 

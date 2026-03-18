@@ -1,9 +1,10 @@
-// App.tsx - UPDATED with MainTabNavigator
+// App.tsx - UPDATED with MainTabNavigator and Presence
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
+import { usePresence } from './src/hooks/usePresence'; // ✅ ADD THIS
 import SplashScreen from './src/screens/splash/SplashScreen';
 import { OnboardingScreen } from './src/screens/onboarding/OnboardingScreen';
 import { AuthWelcomeScreen } from './src/screens/auth/AuthWelcomeScreen';
@@ -11,7 +12,7 @@ import { CreateAccountWelcomeScreen } from './src/screens/auth/CreateAccountWelc
 import { NameCollectionScreen } from './src/screens/auth/NameCollectionScreen';
 import { AccountSuccessScreen } from './src/screens/auth/AccountSuccessScreen';
 import { PhoneVerifyScreen } from './src/screens/auth/PhoneVerifyScreen';
-import { MainTabNavigator } from './src/navigation/MainTabNavigator'; // NEW
+import { MainTabNavigator } from './src/navigation/MainTabNavigator';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -34,6 +35,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 const Navigation = () => {
   const { user, loading } = useAuth();
+  usePresence(); // ✅ ADD THIS - Tracks online/offline status
 
   if (loading) {
     return (
@@ -51,7 +53,6 @@ const Navigation = () => {
         }}
       >
         {user ? (
-          // CHANGED: Use MainTabNavigator instead of MainAppScreen
           <Stack.Screen name="MainApp" component={MainTabNavigator} />
         ) : (
           <>

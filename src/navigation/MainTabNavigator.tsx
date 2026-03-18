@@ -5,8 +5,9 @@ import { Home, Search, PlusCircle, MessageSquare, MoreHorizontal } from 'lucide-
 import { MainTabParamList } from './types';
 import { HomeStackNavigator } from './HomeStackNavigator';
 import { SellStackNavigator } from './SellStackNavigator';
+import { ProfileStackNavigator } from './ProfileStackNavigator';
+import { MessagesStackNavigator } from './MessagesStackNavigator'; // ← NEW
 import { PlaceholderScreen } from '../screens/main/PlaceholderScreen';
-import { ProfileScreen } from '../screens/main/ProfileScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -45,12 +46,7 @@ export const MainTabNavigator: React.FC = () => {
           tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
         }}
       >
-        {() => (
-          <PlaceholderScreen
-            title="Search"
-            message="Search functionality coming soon"
-          />
-        )}
+        {() => <PlaceholderScreen title="Search" message="Search functionality coming soon" />}
       </Tab.Screen>
       <Tab.Screen
         name="SellTab"
@@ -60,23 +56,18 @@ export const MainTabNavigator: React.FC = () => {
           tabBarIcon: ({ color, size }) => <PlusCircle size={size} color={color} />,
         }}
       />
+      {/* ✅ FIXED: Was PlaceholderScreen, now real MessagesStackNavigator */}
       <Tab.Screen
         name="MessagesTab"
+        component={MessagesStackNavigator}
         options={{
           tabBarLabel: 'Messages',
           tabBarIcon: ({ color, size }) => <MessageSquare size={size} color={color} />,
         }}
-      >
-        {() => (
-          <PlaceholderScreen
-            title="Messages"
-            message="Messaging functionality coming soon"
-          />
-        )}
-      </Tab.Screen>
+      />
       <Tab.Screen
         name="MoreTab"
-        component={ProfileScreen}
+        component={ProfileStackNavigator}
         options={{
           tabBarLabel: 'More',
           tabBarIcon: ({ color, size }) => <MoreHorizontal size={size} color={color} />,

@@ -6,179 +6,176 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   SafeAreaView, 
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
+  TextInput, 
+  Alert, 
+  ActivityIndicator,
   ScrollView
 } from 'react-native';
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
+import { ArrowLeft, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { supabase } from '../../services/supabase';
+import { useAuth } from '../../providers/AuthProvider';
 
 export const ChangePasswordScreen = ({ navigation }: any) => {
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
   
-  // Visibility states for the three fields
-  const [showCurrent, setShowCurrent] = useState(false);
+  // Form State
+  const [passwords, setPasswords] = useState({
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  // Visibility Toggles
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const isFormValid = currentPassword && newPassword && confirmPassword && (newPassword === confirmPassword);
+  const handleChangePassword = async () => {
+    // 1. Security Guards
+    if (!user) {
+      Alert.alert('Error', 'Session expired. Please log in again.');
+      return;
+    }
 
-  const handleUpdate = () => {
-    // Implement Supabase auth.updateUser({ password: newPassword }) logic here
-    console.log("Password update initiated");
-    navigation.goBack();
+    if (passwords.newPassword.length < 6) {
+      Alert.alert('Weak Password', 'Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      Alert.alert('Mismatch', 'Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+
+    // 2. Secure Supabase Update
+    const { error } = await supabase.auth.updateUser({ 
+      password: passwords.newPassword 
+    });
+
+    setLoading(false);
+
+    if (error) {
+      Alert.alert('Update Failed', error.message);
+    } else {
+      Alert.alert(
+        'Success', 
+        'Your password has been updated successfully.',
+        [{ text: 'Great', onPress: () => navigation.goBack() }]
+      );
+    }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <ArrowLeft size={24} color="#111827" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Change Password</Text>
-          <View style={{ width: 24 }} />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <ArrowLeft size={24} color="#111827" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Change Password</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.infoBox}>
+          <Text style={styles.infoText}>
+            Choose a strong password with at least 6 characters.
+          </Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.container}>
-          {/* Current Password Field */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Current password</Text>
-            <View style={styles.passwordWrapper}>
-              <TextInput 
-                style={styles.input}
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-                secureTextEntry={!showCurrent}
-                placeholder="Enter current password"
-              />
-              <TouchableOpacity 
-                onPress={() => setShowCurrent(!showCurrent)}
-                style={styles.eyeIcon}
-              >
-                {showCurrent ? <EyeOff size={20} color="#9CA3AF" /> : <Eye size={20} color="#9CA3AF" />}
-              </TouchableOpacity>
-            </View>
+        {/* New Password Field */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>New Password</Text>
+          <View style={styles.inputWrapper}>
+            <Lock size={20} color="#9CA3AF" style={styles.inputIcon} />
+            <TextInput 
+              style={styles.input}
+              value={passwords.newPassword}
+              onChangeText={(text) => setPasswords({...passwords, newPassword: text})}
+              placeholder="Enter new password"
+              secureTextEntry={!showNew}
+            />
+            <TouchableOpacity onPress={() => setShowNew(!showNew)}>
+              {showNew ? <EyeOff size={20} color="#6B7280" /> : <Eye size={20} color="#6B7280" />}
+            </TouchableOpacity>
           </View>
+        </View>
 
-          {/* New Password Field */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>New password</Text>
-            <View style={styles.passwordWrapper}>
-              <TextInput 
-                style={styles.input}
-                value={newPassword}
-                onChangeText={setNewPassword}
-                secureTextEntry={!showNew}
-                placeholder="Enter new password"
-              />
-              <TouchableOpacity 
-                onPress={() => setShowNew(!showNew)}
-                style={styles.eyeIcon}
-              >
-                {showNew ? <EyeOff size={20} color="#9CA3AF" /> : <Eye size={20} color="#9CA3AF" />}
-              </TouchableOpacity>
-            </View>
+        {/* Confirm Password Field */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Confirm New Password</Text>
+          <View style={styles.inputWrapper}>
+            <Lock size={20} color="#9CA3AF" style={styles.inputIcon} />
+            <TextInput 
+              style={styles.input}
+              value={passwords.confirmPassword}
+              onChangeText={(text) => setPasswords({...passwords, confirmPassword: text})}
+              placeholder="Repeat new password"
+              secureTextEntry={!showConfirm}
+            />
+            <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)}>
+              {showConfirm ? <EyeOff size={20} color="#6B7280" /> : <Eye size={20} color="#6B7280" />}
+            </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Confirm New Password Field */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Confirm new password</Text>
-            <View style={styles.passwordWrapper}>
-              <TextInput 
-                style={styles.input}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showConfirm}
-                placeholder="Confirm new password"
-              />
-              <TouchableOpacity 
-                onPress={() => setShowConfirm(!showConfirm)}
-                style={styles.eyeIcon}
-              >
-                {showConfirm ? <EyeOff size={20} color="#9CA3AF" /> : <Eye size={20} color="#9CA3AF" />}
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Update Button */}
-          <TouchableOpacity 
-            style={[styles.button, !isFormValid && styles.buttonDisabled]}
-            onPress={handleUpdate}
-            disabled={!isFormValid}
-          >
-            <Text style={[styles.buttonText, !isFormValid && styles.buttonTextDisabled]}>
-              Update password
-            </Text>
-          </TouchableOpacity>
-
-          {/* Forgot Password Link */}
-          <TouchableOpacity 
-            style={styles.forgotLink}
-            onPress={() => navigation.navigate('ForgotPassword')}
-          >
-            <Text style={styles.forgotText}>Forgot current password?</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <TouchableOpacity 
+          style={[styles.submitBtn, loading && styles.disabledBtn]} 
+          onPress={handleChangePassword}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.submitBtnText}>Update Password</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 16, 
+    paddingVertical: 12, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#F3F4F6' 
   },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
   container: { padding: 20 },
+  infoBox: { 
+    backgroundColor: '#F0FDF4', 
+    padding: 16, 
+    borderRadius: 12, 
+    marginBottom: 32 
+  },
+  infoText: { fontSize: 14, color: '#166534', lineHeight: 20 },
   inputGroup: { marginBottom: 24 },
-  label: { fontSize: 14, fontWeight: '500', color: '#111827', marginBottom: 8 },
-  passwordWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+  label: { fontSize: 14, fontWeight: '600', color: '#374151', marginBottom: 8 },
+  inputWrapper: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    borderWidth: 1, 
+    borderColor: '#E5E7EB', 
+    borderRadius: 8, 
+    paddingHorizontal: 12,
+    height: 56
   },
-  input: {
-    flex: 1,
-    height: 56,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#111827',
+  inputIcon: { marginRight: 12 },
+  input: { flex: 1, fontSize: 16, color: '#111827' },
+  submitBtn: { 
+    backgroundColor: '#008102', 
+    height: 56, 
+    borderRadius: 28, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginTop: 20 
   },
-  eyeIcon: { paddingHorizontal: 16 },
-  button: {
-    height: 56,
-    backgroundColor: '#008102',
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  buttonDisabled: { backgroundColor: '#E5E7EB' },
-  buttonText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
-  buttonTextDisabled: { color: '#9CA3AF' },
-  forgotLink: { alignSelf: 'center' },
-  forgotText: { 
-    fontSize: 16, 
-    fontWeight: '600', 
-    color: '#008102', 
-    textDecorationLine: 'underline' 
-  },
+  submitBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  disabledBtn: { backgroundColor: '#A3E635' }
 });
