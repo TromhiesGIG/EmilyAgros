@@ -9,8 +9,8 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { SellFormData } from '../../types/sellForm';
 import { Category } from '../../navigation/types';
 import { Feather } from '@expo/vector-icons';

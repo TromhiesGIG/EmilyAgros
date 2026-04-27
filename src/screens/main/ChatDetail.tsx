@@ -3,8 +3,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
   TouchableOpacity, Image, KeyboardAvoidingView,
-  Platform, Linking, Alert, SafeAreaView, ActivityIndicator, Modal, Pressable
+  Platform, Linking, Alert, ActivityIndicator, Modal, Pressable
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ArrowLeft, Phone, MoreVertical, Send, ImageIcon, Mic, X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -38,6 +39,7 @@ export const ChatDetail = ({ route, navigation }: any) => {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [recordingAmplitudes, setRecordingAmplitudes] = useState<number[]>([]);
   const [showMediaMenu, setShowMediaMenu] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [replyingTo, setReplyingTo] = useState<any>(null);
@@ -419,87 +421,164 @@ export const ChatDetail = ({ route, navigation }: any) => {
   };
 
   // Start voice recording
-  const startRecording = async () => {
-    try {
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please allow microphone access');
-        return;
-      }
-
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-
-      setRecording(newRecording);
-      setIsRecording(true);
-      setRecordingDuration(0);
-
-      // Update duration every second
-      const interval = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
-
-      // Store interval ID in recording object for cleanup
-      (newRecording as any).durationInterval = interval;
-    } catch (error) {
-      console.error('Recording error:', error);
-      Alert.alert('Error', 'Failed to start recording');
+// Start voice recording with amplitude tracking
+const startRecording = async () => {
+  try {
+    const { status } = await Audio.requestPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow microphone access');
+      return;
     }
-    setShowMediaMenu(false);
-  };
 
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+    });
+
+    // ENABLE METERING in recording options
+    const { recording: newRecording } = await Audio.Recording.createAsync(
+      {
+        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        isMeteringEnabled: true, // THIS IS KEY!
+      }
+    );
+
+    setRecording(newRecording);
+    setIsRecording(true);
+    setRecordingDuration(0);
+    setRecordingAmplitudes([]);
+
+    // Duration counter - every 1 SECOND
+    const durationInterval = setInterval(() => {
+      setRecordingDuration(prev => prev + 1);
+    }, 1000);
+
+    // Amplitude sampler - every 100ms
+    const amplitudeInterval = setInterval(async () => {
+      try {
+        const status = await newRecording.getStatusAsync();
+        
+        // DEBUG: Log what we're getting
+        if (status.isRecording) {
+          console.log('🎤 Recording status:', {
+            metering: status.metering,
+            durationMillis: status.durationMillis,
+          });
+          
+          if (status.metering !== undefined && status.metering !== null) {
+            const metering = status.metering;
+            
+            // WHATSAPP-STYLE NOISE GATING & RANGE COMPRESSION
+            // Based on analysis: iOS speech is typically -45 to -5 dB
+            
+            let normalizedHeight;
+            
+            if (metering < -45) {
+              // SILENCE ZONE: Background noise, AC, fans, etc.
+              // Force to minimum height (20%) - ignore background
+              normalizedHeight = 0.2;
+              console.log('🔇 SILENCE:', metering.toFixed(2), '→ 20% (noise gate)');
+              
+            } else if (metering >= -45 && metering <= -5) {
+              // ACTIVE ZONE: Normal speech range
+              // Map -45 to -5 dB → 20% to 90% height
+              const range = -5 - (-45); // 40 dB range
+              const position = (metering - (-45)) / range; // 0 to 1
+              normalizedHeight = 0.2 + (position * 0.7); // 20% to 90%
+              console.log('🎤 ACTIVE:', metering.toFixed(2), '→', (normalizedHeight * 100).toFixed(0) + '%');
+              
+            } else {
+              // LOUD ZONE: Very loud / shouting
+              // Cap at 90-100% to prevent distortion look
+              normalizedHeight = 0.9 + ((metering + 5) / 5) * 0.1; // 90% to 100%
+              normalizedHeight = Math.min(1.0, normalizedHeight);
+              console.log('📢 LOUD:', metering.toFixed(2), '→', (normalizedHeight * 100).toFixed(0) + '%');
+            }
+            
+            setRecordingAmplitudes(prev => {
+              const updated = [...prev, normalizedHeight];
+              return updated.slice(-30);
+            });
+          } else {
+            // No metering available - use random fallback
+            console.log('⚠️ Metering not available, using fallback');
+            setRecordingAmplitudes(prev => {
+              const updated = [...prev, Math.random() * 0.6 + 0.2];
+              return updated.slice(-30);
+            });
+          }
+        }
+      } catch (e) {
+        console.error('❌ Amplitude sampling error:', e);
+        // Fallback
+        setRecordingAmplitudes(prev => {
+          const updated = [...prev, Math.random() * 0.6 + 0.2];
+          return updated.slice(-30);
+        });
+      }
+    }, 100);
+
+    // Store BOTH intervals
+    (newRecording as any).durationInterval = durationInterval;
+    (newRecording as any).amplitudeInterval = amplitudeInterval;
+  } catch (error) {
+    console.error('Recording error:', error);
+    Alert.alert('Error', 'Failed to start recording');
+  }
+  setShowMediaMenu(false);
+};
   // Stop and upload voice
   const stopRecording = async () => {
-    if (!recording) return;
-    console.log('🛑 Stopping recording...');
-    setIsRecording(false);
-    setUploadingMedia(true);
+  if (!recording) return;
+  console.log('🛑 Stopping recording...');
+  setIsRecording(false);
+  setUploadingMedia(true);
 
-    // Clear duration interval
-    const interval = (recording as any).durationInterval;
-    if (interval) clearInterval(interval);
+  // Clear BOTH intervals - IMPORTANT!
+  const durationInterval = (recording as any).durationInterval;
+  const amplitudeInterval = (recording as any).amplitudeInterval;
+  if (durationInterval) clearInterval(durationInterval);
+  if (amplitudeInterval) clearInterval(amplitudeInterval);
 
-    try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      if (uri) {
-        console.log('📤 Uploading voice from:', uri);
-        await uploadVoice(uri);
-      }
-      setRecording(null);
-      setRecordingDuration(0);
-    } catch (error) {
-      console.error('❌ Stop recording error:', error);
-      Alert.alert('Error', 'Failed to save recording');
+  try {
+    await recording.stopAndUnloadAsync();
+    const uri = recording.getURI();
+    if (uri) {
+      console.log('📤 Uploading voice from:', uri);
+      await uploadVoice(uri);
     }
-    setUploadingMedia(false);
-  };
+    setRecording(null);
+    setRecordingDuration(0);
+    setRecordingAmplitudes([]);
+  } catch (error) {
+    console.error('❌ Stop recording error:', error);
+    Alert.alert('Error', 'Failed to save recording');
+  }
+  setUploadingMedia(false);
+};
 
-  // Cancel recording without saving
-  const cancelRecording = async () => {
-    if (!recording) return;
-    console.log('❌ Canceling recording...');
-    setIsRecording(false);
+// Cancel recording without saving
+const cancelRecording = async () => {
+  if (!recording) return;
+  console.log('❌ Canceling recording...');
+  setIsRecording(false);
 
-    // Clear duration interval
-    const interval = (recording as any).durationInterval;
-    if (interval) clearInterval(interval);
+  // Clear BOTH intervals
+  const durationInterval = (recording as any).durationInterval;
+  const amplitudeInterval = (recording as any).amplitudeInterval;
+  if (durationInterval) clearInterval(durationInterval);
+  if (amplitudeInterval) clearInterval(amplitudeInterval);
 
-    try {
-      await recording.stopAndUnloadAsync();
-      setRecording(null);
-      setRecordingDuration(0);
-      console.log('✅ Recording canceled');
-    } catch (error) {
-      console.error('❌ Cancel recording error:', error);
-    }
-  };
+  try {
+    await recording.stopAndUnloadAsync();
+    setRecording(null);
+    setRecordingDuration(0);
+    setRecordingAmplitudes([]);
+    console.log('✅ Recording canceled');
+  } catch (error) {
+    console.error('❌ Cancel recording error:', error);
+  }
+};
 
   // Upload voice to storage
   const uploadVoice = async (uri: string) => {
@@ -1039,7 +1118,10 @@ export const ChatDetail = ({ route, navigation }: any) => {
               <Text style={styles.cancelRecordingText}>✕</Text>
             </TouchableOpacity>
             <View style={{ flex: 1 }}>
-              <WaveformRecording duration={recordingDuration} />
+              <WaveformRecording 
+                duration={recordingDuration} 
+                amplitudes={recordingAmplitudes}
+              />
             </View>
             <TouchableOpacity style={styles.stopRecordingBtn} onPress={stopRecording}>
               <Text style={styles.stopRecordingText}>Send</Text>

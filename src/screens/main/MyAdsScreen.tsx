@@ -1,9 +1,10 @@
 // src/screens/main/MyAdsScreen.tsx
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, SafeAreaView,
+  View, Text, StyleSheet, TouchableOpacity,
   FlatList, Image, ActivityIndicator, RefreshControl
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Search, MoreVertical } from 'lucide-react-native';
 import { useSyncData, Ad } from '../../hooks/useSyncData';
 

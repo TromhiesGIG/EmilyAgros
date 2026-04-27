@@ -5,10 +5,10 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  SafeAreaView,
   Dimensions,
   PanResponder,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../App';
@@ -16,6 +16,13 @@ import { RootStackParamList } from '../../../App';
 type OnboardingScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 };
+
+interface OnboardingData {
+  image: any;
+  title: string;
+  description: string;
+  showSkip: boolean;
+}
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -159,7 +166,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }
   );
 };
 
-// Styles are unchanged
 const styles = StyleSheet.create({
   container: {
     flex: 1,

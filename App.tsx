@@ -1,10 +1,11 @@
-// App.tsx - UPDATED with MainTabNavigator and Presence
+// App.tsx - UPDATED with SafeAreaProvider, MainTabNavigator and Presence
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context'; // ← ADDED
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
-import { usePresence } from './src/hooks/usePresence'; // ✅ ADD THIS
+import { usePresence } from './src/hooks/usePresence';
 import SplashScreen from './src/screens/splash/SplashScreen';
 import { OnboardingScreen } from './src/screens/onboarding/OnboardingScreen';
 import { AuthWelcomeScreen } from './src/screens/auth/AuthWelcomeScreen';
@@ -35,7 +36,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 const Navigation = () => {
   const { user, loading } = useAuth();
-  usePresence(); // ✅ ADD THIS - Tracks online/offline status
+  usePresence();
 
   if (loading) {
     return (
@@ -98,9 +99,11 @@ const Navigation = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Navigation />
-    </AuthProvider>
+    <SafeAreaProvider> {/* ← WRAP EVERYTHING */}
+      <AuthProvider>
+        <Navigation />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 

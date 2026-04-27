@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Image, SafeAreaView, ActivityIndicator, RefreshControl
+  Image, ActivityIndicator, RefreshControl
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search } from 'lucide-react-native';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../providers/AuthProvider';

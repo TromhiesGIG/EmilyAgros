@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, SafeAreaView, 
-  TextInput, Alert, ActivityIndicator 
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  TextInput, Alert, ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft} from 'lucide-react-native';
 import PayWithFlutterwave from 'flutterwave-react-native';
 import { supabase } from '../../services/supabase';

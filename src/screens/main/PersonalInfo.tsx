@@ -1,9 +1,10 @@
 // src/screens/main/PersonalInfo.tsx
 import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, SafeAreaView, 
-  TextInput, ScrollView, Alert, ActivityIndicator, Image 
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  TextInput, ScrollView, Alert, ActivityIndicator, Image
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Save, Camera } from 'lucide-react-native';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../providers/AuthProvider';

@@ -1,18 +1,18 @@
 // src/screens/main/ProfileScreen.tsx
 import React, { useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  Image, 
-  TouchableOpacity, 
-  SafeAreaView 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity
 } from 'react-native';
-import { 
-  FileText, 
-  Wallet, 
-  Bell, 
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  FileText,
+  Wallet,
+  Bell,
   Bookmark, 
   Users, 
   Diamond, 

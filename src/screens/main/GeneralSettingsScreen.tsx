@@ -1,14 +1,14 @@
 // src/screens/main/GeneralSettingsScreen.tsx
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   Switch,
-  ScrollView 
+  ScrollView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   ArrowLeft, 
   MessageSquare, 

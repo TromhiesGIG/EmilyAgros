@@ -1,78 +1,100 @@
 // src/navigation/types.ts
-import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import { CompositeScreenProps } from '@react-navigation/native';
-import { StackScreenProps } from '@react-navigation/stack';
-
-export interface SubCategory {
-  id: number;
-  name: string;
-  slug: string;
-}
-
-export interface Category {
-  id: number;
-  name: string;
-  slug: string;
-  icon: any;
-  subcategories: SubCategory[];
-}
-
-// 1. Define the Bottom Tab routes
-export type MainTabParamList = {
-  HomeTab: undefined;
-  SearchTab: undefined;
-  MessagesTab: undefined;
-  SellTab: undefined;
-  ChatTab: undefined;
-  MoreTab: undefined; // This will hold your ProfileStackNavigator
-};
-
-// 2. Define the Stack routes (This matches your current list)
-export type SellStackParamList = {
-  CategorySelection: { currentCategory?: Category };
-  SubcategorySelection: { category: Category; currentSubcategory?: SubCategory };
-  PostNewAd: { selectedCategory?: Category; selectedSubcategory?: SubCategory };
-};
 
 export type HomeStackParamList = {
   Home: undefined;
   AllCategories: undefined;
+  Subcategories: {
+    categoryId: number;
+    categoryName: string;
+  };
+  CategoryProducts: {
+    categoryId: number;
+    categoryName: string;
+    subcategoryId?: number;
+    subcategoryName?: string;
+  };
   ProductDetail: { productId: string };
+  AdDetails: { adId: string };
   
+  // Profile & Account
   Profile: undefined;
   AccountSettings: undefined;
   PersonalInfo: undefined;
   EmailAddress: undefined;
   ChangePassword: undefined;
   
+  // Settings
   GeneralSettings: undefined;
   ManageNotifications: undefined;
   LocationAccess: undefined;
   Permissions: undefined;
   
+  // Marketplace & Social
   MyAds: undefined;
-  AdDetails: { adId: string };
   SavedItems: undefined;
   Follows: undefined;
+  SellerProfile: { sellerId: string };
+  LeaveReview: { sellerId: string; sellerName: string };
   
+  // Chat
+  ChatDetail: {
+    receiverId: string;
+    receiverName: string;
+    receiverAvatar?: string;
+    adId?: string;
+  };
+  
+  // Financial
   MyWallet: undefined;
   WalletRecharge: undefined;
   Subscriptions: undefined;
   PlanManagement: undefined;
-
-  ChatDetail: { 
-    chatId: string; 
-    sellerName: string; 
-    adTitle: string; 
-    adPrice: number; 
-    adImage: string; 
-    phoneNumber?: string; 
-  };
 };
 
-// 3. Helper type for screen props (Optional but very helpful for your components)
-export type ProfileStackScreenProps<T extends keyof HomeStackParamList> = 
-  CompositeScreenProps<
-    StackScreenProps<HomeStackParamList, T>,
-    BottomTabScreenProps<MainTabParamList>
-  >;
+export type RootTabParamList = {
+  HomeTab: undefined;
+  SearchTab: undefined;
+  SellTab: undefined;
+  MessagesTab: undefined;
+  MoreTab: undefined;
+};
+
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  icon: any;
+  subcategories?: SubCategory[];
+  adCount?: number;
+}
+
+export interface SubCategory {
+  id: number;
+  name: string;
+  slug: string;
+  category_id?: number;
+}
+
+export interface Product {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  category_id: number;
+  subcategory_id?: number;
+  price: number;
+  negotiable: boolean;
+  images: string[];
+  status: string;
+  location_state: string;
+  location_lga: string;
+  location_address?: string;
+  contact_name?: string;
+  contact_business?: string;
+  contact_phone: string;
+  contact_whatsapp: boolean;
+  views: number;
+  created_at: string;
+  updated_at: string;
+  expires_at?: string;
+}

@@ -1,16 +1,16 @@
 
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   ScrollView,
   Modal,
   Alert, // Added missing Alert import
   ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Wallet, ChevronDown, X } from 'lucide-react-native';
 import { supabase } from '../../services/supabase'; // Added missing supabase import
 import { useAuth } from '../../providers/AuthProvider'; // Added missing useAuth import

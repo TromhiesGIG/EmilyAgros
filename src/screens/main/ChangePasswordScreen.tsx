@@ -1,16 +1,16 @@
 // src/screens/main/ChangePasswordScreen.tsx
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  TextInput, 
-  Alert, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Alert,
   ActivityIndicator,
   ScrollView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../providers/AuthProvider';

@@ -1,18 +1,18 @@
 // src/screens/main/AccountSettingsScreen.tsx
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  Alert 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert
 } from 'react-native';
-import { 
-  User, 
-  AtSign, 
-  Lock, 
-  Link, 
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  User,
+  AtSign,
+  Lock,
+  Link,
   LogOut, 
   Trash2, 
   ChevronRight,
