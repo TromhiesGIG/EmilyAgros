@@ -1,3 +1,4 @@
+// src/screens/auth/NameCollectionScreen.tsx
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,7 +18,7 @@ type NameCollectionScreenProps = {
 };
 
 export const NameCollectionScreen: React.FC<NameCollectionScreenProps> = ({ navigation, route }) => {
-  const { email, password } = route.params;
+  const { email, password, phoneNumber, isPhoneAuth } = route.params;
   
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -32,12 +33,22 @@ export const NameCollectionScreen: React.FC<NameCollectionScreenProps> = ({ navi
     setLoading(true);
     
     try {
-      await authService.signUp({
-        email,
-        password,
-        firstName,
-        lastName,
-      });
+      if (isPhoneAuth && phoneNumber) {
+        // Phone signup
+        await authService.signUpWithPhone({
+          phoneNumber,
+          firstName,
+          lastName,
+        });
+      } else if (email && password) {
+        // Email signup
+        await authService.signUp({
+          email,
+          password,
+          firstName,
+          lastName,
+        });
+      }
       
       setLoading(false);
       navigation.navigate('AccountSuccess');

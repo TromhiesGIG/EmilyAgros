@@ -18,8 +18,10 @@ import {
   ChevronRight,
   ArrowLeft
 } from 'lucide-react-native';
+import { useAuth } from '../../providers/AuthProvider';
 
 export const AccountSettingsScreen = ({ navigation }: any) => {
+  const { signOut } = useAuth();
   
   const SettingItem = ({ icon: Icon, title, onPress, isDestructive = false }: any) => (
     <TouchableOpacity 
@@ -40,7 +42,17 @@ export const AccountSettingsScreen = ({ navigation }: any) => {
   const handleLogout = () => {
     Alert.alert("Log out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Log out", onPress: () => console.log("User logged out") }
+      { 
+        text: "Log out", 
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await signOut();
+          } catch (error) {
+            Alert.alert("Error", "Failed to log out. Please try again.");
+          }
+        }
+      }
     ]);
   };
 

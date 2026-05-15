@@ -1,153 +1,300 @@
-// src/screens/categories/CategoryProductsScreen.tsx
+// src/screens/categories/CategoryProductsScreen.tsx - FIXED NAVIGATION
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
   ActivityIndicator,
-  RefreshControl 
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { ArrowLeft, LayoutGrid, List as ListIcon } from 'lucide-react-native';
+import { ArrowLeft, Search as SearchIcon, Grid3x3, List } from 'lucide-react-native';
 import { HomeStackParamList } from '../../navigation/types';
-import { supabase } from '../../services/supabase';
 import { ProductCard } from '../../components/ProductCard';
+import { SearchBar } from '../../components/search/SearchBar';
+import { FilterChip } from '../../components/search/FilterChip';
+import { SortDropdown } from '../../components/search/SortDropdown';
+import { FilterModal } from '../../components/search/FilterModal';
+import { attributesService } from '../../services/attributesService';
+import { 
+  FilterAttribute, 
+  ProductFilters, 
+  SortOption,
+  ActiveFilters 
+} from '../../types/attributes';
 
-type CategoryProductsScreenNavigationProp = StackNavigationProp<
-  HomeStackParamList,
-  'CategoryProducts'
->;
+type CategoryProductsScreenProps = {
+  navigation: NativeStackNavigationProp<HomeStackParamList, 'CategoryProducts'>;
+  route: RouteProp<HomeStackParamList, 'CategoryProducts'>;
+};
 
-type CategoryProductsScreenRouteProp = RouteProp<HomeStackParamList, 'CategoryProducts'>;
-
-interface CategoryProductsScreenProps {
-  navigation: CategoryProductsScreenNavigationProp;
-  route: CategoryProductsScreenRouteProp;
-}
-
-export const CategoryProductsScreen: React.FC<CategoryProductsScreenProps> = ({ 
-  navigation, 
-  route 
+export const CategoryProductsScreen: React.FC<CategoryProductsScreenProps> = ({
+  navigation,
+  route,
 }) => {
   const { categoryId, categoryName, subcategoryId, subcategoryName } = route.params;
-  const [layout, setLayout] = useState<'grid' | 'list'>('list');
+
+  // State
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showSearch, setShowSearch] = useState(false);
 
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>({});
+  const [availableFilters, setAvailableFilters] = useState<FilterAttribute[]>([]);
+  
+  // Modal state
+  const [selectedFilter, setSelectedFilter] = useState<FilterAttribute | null>(null);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+
+  // Load filters for this category
   useEffect(() => {
-    fetchProducts();
-  }, [categoryId, subcategoryId]);
+    loadFilters();
+  }, [categoryId]);
 
-  const fetchProducts = async () => {
+  // Load products whenever filters change
+  useEffect(() => {
+    loadProducts();
+  }, [categoryId, subcategoryId, searchQuery, sortBy, activeFilters]);
+
+  const loadFilters = async () => {
     try {
-      let query = supabase
-        .from('products')
-        .select('*')
-        .eq('status', 'Active')
-        .eq('category_id', categoryId);
-
-      // Filter by subcategory if provided
-      if (subcategoryId) {
-        query = query.eq('subcategory_id', subcategoryId);
-      }
-
-      const { data, error } = await query
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      if (data) setProducts(data);
+      const filters = await attributesService.getAttributeDefinitionsForCategory(categoryId);
+      setAvailableFilters(filters);
     } catch (error) {
-      console.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      console.error('Error loading filters:', error);
     }
   };
 
-  const onRefresh = async () => {
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+
+      const filters: ProductFilters = {
+        category_id: categoryId,
+        subcategory_id: subcategoryId,
+        search: searchQuery || undefined,
+        sort_by: sortBy,
+        attributes: activeFilters,
+      };
+
+      const results = await attributesService.searchProducts(filters);
+      setProducts(results);
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchProducts();
+    await loadProducts();
+    setRefreshing(false);
   };
 
-  const toggleLayout = () => {
-    setLayout(prev => (prev === 'grid' ? 'list' : 'grid'));
+  const handleFilterPress = (filter: FilterAttribute) => {
+    setSelectedFilter(filter);
+    setShowFilterModal(true);
   };
 
-  const displayTitle = subcategoryName || categoryName;
+  const handleApplyFilter = (filterName: string, value: any) => {
+    if (value === undefined || value === null || value === '') {
+      // Remove filter
+      const newFilters = { ...activeFilters };
+      delete newFilters[filterName];
+      setActiveFilters(newFilters);
+    } else {
+      // Add/update filter
+      setActiveFilters({
+        ...activeFilters,
+        [filterName]: value,
+      });
+    }
+  };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+  const handleClearAllFilters = () => {
+    setActiveFilters({});
+    setSearchQuery('');
+  };
+
+  const getActiveFilterCount = () => {
+    return Object.keys(activeFilters).length + (searchQuery ? 1 : 0);
+  };
+
+  const isFilterActive = (filterName: string) => {
+    return activeFilters.hasOwnProperty(filterName);
+  };
+
+  const renderHeader = () => (
+    <View>
+      {/* Top Bar */}
+      <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{displayTitle}</Text>
-        <TouchableOpacity onPress={toggleLayout}>
-          {layout === 'grid' ? (
-            <ListIcon size={24} color="#111827" />
-          ) : (
-            <LayoutGrid size={24} color="#111827" />
-          )}
-        </TouchableOpacity>
+
+        <Text style={styles.title} numberOfLines={1}>
+          {subcategoryName || categoryName}
+        </Text>
+
+        <View style={styles.topBarActions}>
+          <TouchableOpacity 
+            onPress={() => setShowSearch(!showSearch)}
+            style={styles.iconButton}
+          >
+            <SearchIcon size={24} color="#111827" />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+            style={styles.iconButton}
+          >
+            {viewMode === 'grid' ? (
+              <List size={24} color="#111827" />
+            ) : (
+              <Grid3x3 size={24} color="#111827" />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Products */}
-      {loading ? (
-        <ActivityIndicator size="large" color="#008102" style={{ marginTop: 40 }} />
-      ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#008102']} />
-          }
-        >
-          {products.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No products yet in this category</Text>
-              <Text style={styles.emptySubtext}>Be the first to post!</Text>
-              <TouchableOpacity
-                style={styles.postButton}
-                onPress={() => {
-                  // Navigate to root tab navigator's Sell tab
-                  const rootNav = navigation.getParent();
-                  if (rootNav) {
-                    rootNav.navigate('SellTab');
-                  }
-                }}
-              >
-                <Text style={styles.postButtonText}>Post an Ad</Text>
-              </TouchableOpacity>
-            </View>
-          ) : layout === 'list' ? (
-            <View style={styles.listContainer}>
-              {products.map(product => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onPress={() => navigation.navigate('AdDetails', { adId: product.id })}
-                />
-              ))}
-            </View>
-          ) : (
-            <View style={styles.gridContainer}>
-              {products.map(product => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  layout="grid"
-                  onPress={() => navigation.navigate('AdDetails', { adId: product.id })}
-                />
-              ))}
-            </View>
-          )}
-          <View style={styles.bottomPadding} />
-        </ScrollView>
+      {/* Search Bar */}
+      {showSearch && (
+        <View style={styles.searchContainer}>
+          <SearchBar
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search for breeds, sellers"
+            fullScreen
+          />
+        </View>
+      )}
+
+      {/* Filter Chips */}
+      {availableFilters.length > 0 && (
+        <View style={styles.filtersContainer}>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={availableFilters}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <FilterChip
+                label={item.attribute_label}
+                isActive={isFilterActive(item.attribute_name)}
+                onPress={() => handleFilterPress(item)}
+              />
+            )}
+            contentContainerStyle={styles.filtersList}
+          />
+        </View>
+      )}
+
+      {/* Results Count & Sort */}
+      <View style={styles.resultsBar}>
+        <Text style={styles.resultsCount}>
+          {loading ? 'Loading...' : `Found ${products.length} ${searchQuery ? `results for ${searchQuery}` : 'ads'}`}
+        </Text>
+
+        <SortDropdown value={sortBy} onChange={setSortBy} />
+      </View>
+
+      {/* Active Filters Indicator */}
+      {getActiveFilterCount() > 0 && (
+        <View style={styles.activeFiltersBar}>
+          <Text style={styles.activeFiltersText}>
+            {getActiveFilterCount()} filter{getActiveFilterCount() > 1 ? 's' : ''} active
+          </Text>
+          <TouchableOpacity onPress={handleClearAllFilters}>
+            <Text style={styles.clearFiltersButton}>Clear filters</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderEmptyState = () => {
+    if (loading) return null;
+
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyStateTitle}>
+          No {subcategoryName || categoryName} found!
+        </Text>
+        <Text style={styles.emptyStateSubtitle}>
+          Try adjusting your filters or search
+        </Text>
+        {getActiveFilterCount() > 0 && (
+          <TouchableOpacity onPress={handleClearAllFilters}>
+            <Text style={styles.clearFiltersLink}>Clear filters</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
+  if (loading && products.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        {renderHeader()}
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#008102" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <FlatList
+        data={products}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ProductCard
+            product={item}
+            viewMode={viewMode}
+            onPress={() =>
+              navigation.navigate('AdDetails', { adId: item.id })
+            }
+          />
+        )}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={renderEmptyState}
+        numColumns={viewMode === 'grid' ? 2 : 1}
+        key={viewMode}
+        contentContainerStyle={styles.listContent}
+        columnWrapperStyle={viewMode === 'grid' ? styles.columnWrapper : undefined}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#008102']}
+            tintColor="#008102"
+          />
+        }
+      />
+
+      {/* Filter Modal */}
+      {selectedFilter && (
+        <FilterModal
+          visible={showFilterModal}
+          onClose={() => {
+            setShowFilterModal(false);
+            setSelectedFilter(null);
+          }}
+          filter={selectedFilter}
+          currentValue={activeFilters[selectedFilter.attribute_name]}
+          onApply={(value) => handleApplyFilter(selectedFilter.attribute_name, value)}
+        />
       )}
     </SafeAreaView>
   );
@@ -156,65 +303,106 @@ export const CategoryProductsScreen: React.FC<CategoryProductsScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F8F9',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
     backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
-  headerTitle: {
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  title: {
+    flex: 1,
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
-    flex: 1,
-    textAlign: 'center',
     marginHorizontal: 16,
   },
-  listContainer: {
-    paddingTop: 12,
-  },
-  gridContainer: {
+  topBarActions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 8,
-    paddingTop: 12,
+    gap: 8,
+  },
+  iconButton: {
+    padding: 4,
+  },
+  searchContainer: {
+    paddingVertical: 8,
+  },
+  filtersContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  filtersList: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  resultsBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  resultsCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  activeFiltersBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F0FDF4',
+  },
+  activeFiltersText: {
+    fontSize: 14,
+    color: '#047857',
+  },
+  clearFiltersButton: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#008102',
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  columnWrapper: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 32,
+    paddingVertical: 60,
+    paddingHorizontal: 40,
   },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
     marginBottom: 8,
     textAlign: 'center',
   },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#9CA3AF',
+  emptyStateSubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
     marginBottom: 24,
     textAlign: 'center',
   },
-  postButton: {
-    backgroundColor: '#008102',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  postButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
+  clearFiltersLink: {
+    fontSize: 16,
     fontWeight: '600',
-  },
-  bottomPadding: {
-    height: 40,
+    color: '#008102',
+    textDecorationLine: 'underline',
   },
 });

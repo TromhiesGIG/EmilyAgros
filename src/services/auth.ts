@@ -1,3 +1,4 @@
+// src/services/auth.ts - UPDATED WITH NEW METHODS
 import { supabase } from './supabase';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
@@ -16,6 +17,12 @@ export interface SignInData {
   password: string;
 }
 
+export interface PhoneSignUpData {
+  phoneNumber: string;
+  firstName: string;
+  lastName: string;
+}
+
 class AuthService {
   // Sign up with email
   async signUp({ email, password, firstName, lastName }: SignUpData) {
@@ -30,12 +37,40 @@ class AuthService {
     // Update profile with name
     const { error: profileError } = await supabase
       .from('profiles')
-      .update({ first_name: firstName, last_name: lastName })
+      .update({ 
+        first_name: firstName, 
+        last_name: lastName,
+        full_name: `${firstName} ${lastName}`
+      })
       .eq('id', data.user.id);
 
     if (profileError) throw profileError;
 
     return data;
+  }
+
+  // NEW: Sign up with phone number
+  async signUpWithPhone({ phoneNumber, firstName, lastName }: PhoneSignUpData) {
+    // Phone auth was already verified via OTP
+    // Just update the profile with name
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) throw userError;
+    if (!user) throw new Error('No authenticated user found');
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ 
+        first_name: firstName, 
+        last_name: lastName,
+        full_name: `${firstName} ${lastName}`,
+        phone: phoneNumber
+      })
+      .eq('id', user.id);
+
+    if (profileError) throw profileError;
+
+    return { user };
   }
 
   // Sign in with email
@@ -47,6 +82,27 @@ class AuthService {
 
     if (error) throw error;
     return data;
+  }
+
+  // NEW: Reset password (for email)
+  async resetPassword(email: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'emilyagros://reset-password',
+    });
+
+    if (error) return { error };
+    return { error: null };
+  }
+
+  // NEW: Update password with phone number
+  async updatePasswordWithPhone(phoneNumber: string, newPassword: string) {
+    // User must be authenticated (after OTP verification)
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) throw error;
+    return { success: true };
   }
 
   // Sign out
@@ -144,6 +200,7 @@ export const signInWithGoogle = async () => {
               id: user.id,
               first_name: firstName || user.user_metadata?.name || user.email?.split('@')[0],
               last_name: lastName,
+              full_name: fullName,
             });
           }
 

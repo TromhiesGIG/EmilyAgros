@@ -1,7 +1,8 @@
+// src/screens/auth/CreateAccountWelcomeScreen.tsx - UPDATED
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Linking } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Animated, { FadeOut, Layout, FadeIn } from 'react-native-reanimated';
+import Animated, { FadeOut, Layout } from 'react-native-reanimated';
 import { RootStackParamList } from '../../../App';
 import { 
   SocialAuthButton, 
@@ -12,6 +13,7 @@ import {
   CustomCheckbox 
 } from '../../components/auth';
 import { signInWithGoogle } from '../../services/auth';
+import { sendPhoneOTP, formatNigerianPhone } from '../../services/termiiAuth';
 
 type CreateAccountWelcomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'CreateAccountWelcome'>;
@@ -19,11 +21,17 @@ type CreateAccountWelcomeScreenProps = {
 
 export const CreateAccountWelcomeScreen: React.FC<CreateAccountWelcomeScreenProps> = ({ navigation }) => {
   const [isFormActive, setIsFormActive] = useState(false);
-  const [email, setEmail] = useState('');
+  const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  const isEmail = (input: string): boolean => input.includes('@');
+  const isPhone = (input: string): boolean => {
+    const digits = input.replace(/\D/g, '');
+    return digits.length >= 10 && digits.length <= 13;
+  };
 
   const handleGoogleAuth = async () => {
     try {
@@ -35,7 +43,6 @@ export const CreateAccountWelcomeScreen: React.FC<CreateAccountWelcomeScreenProp
           index: 0,
           routes: [{ name: 'MainApp' }],
         });
-        console.log('User:', result.user);
       } else {
         if (result.error !== 'Authentication cancelled') {
           Alert.alert('Error', result.error || 'Failed to sign in with Google');
@@ -58,38 +65,62 @@ export const CreateAccountWelcomeScreen: React.FC<CreateAccountWelcomeScreenProp
   };
 
   const handleContinue = async () => {
-    if (!email || !password) {
-      Alert.alert('Missing Information', 'Please fill in all fields');
+    if (!emailOrPhone) {
+      Alert.alert('Missing Information', 'Please enter your email or phone number');
       return;
     }
-    
-    if (password.length < 6) {
-      Alert.alert('Invalid Password', 'Password must be at least 6 characters');
-      return;
-    }
-    
-    setLoading(true);
-    navigation.navigate('NameCollection', { 
-      email, 
-      password, 
-      keepLoggedIn 
-    });
-  };
 
-  const handleBack = () => {
-    setIsFormActive(false);
-    setEmail('');
-    setPassword('');
-    setKeepLoggedIn(false);
+    setLoading(true);
+
+    try {
+      if (isEmail(emailOrPhone)) {
+        // Email signup flow
+        if (!password) {
+          Alert.alert('Error', 'Please enter a password');
+          setLoading(false);
+          return;
+        }
+        
+        if (password.length < 6) {
+          Alert.alert('Invalid Password', 'Password must be at least 6 characters');
+          setLoading(false);
+          return;
+        }
+        
+        navigation.navigate('NameCollection', { 
+          email: emailOrPhone, 
+          password, 
+          keepLoggedIn 
+        });
+      } else if (isPhone(emailOrPhone)) {
+        // Phone signup flow
+        const formattedPhone = formatNigerianPhone(emailOrPhone);
+        const result = await sendPhoneOTP(formattedPhone);
+        
+        if (result.success) {
+          navigation.navigate('PhoneVerify', { 
+            phoneNumber: formattedPhone,
+            isSignup: true  // This is signup, not sign in
+          });
+        } else {
+          Alert.alert('Error', result.error || 'Failed to send OTP');
+        }
+      } else {
+        Alert.alert('Error', 'Please enter a valid email or phone number');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignIn = () => {
     navigation.goBack();
   };
 
-  const handleForgotPassword = () => {
-    console.log('Forgot password pressed');
-  };
+  const needsPassword = isEmail(emailOrPhone);
+  const buttonText = isPhone(emailOrPhone) ? 'Send Code' : 'Continue';
 
   return (
     <KeyboardAvoidingView 
@@ -132,41 +163,33 @@ export const CreateAccountWelcomeScreen: React.FC<CreateAccountWelcomeScreenProp
           <Animated.View layout={Layout.springify().delay(200)}>
             <CustomTextInput
               label="Email or phone"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
+              value={emailOrPhone}
+              onChangeText={setEmailOrPhone}
+              placeholder="email@example.com or 0801 234 5678"
               autoCapitalize="none"
               autoCorrect={false}
-              placeholder="email@example.com"
             />
 
-            <PasswordInput
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-            />
-
-            <View style={styles.optionsRow}>
-              <CustomCheckbox
-                checked={keepLoggedIn}
-                onPress={() => setKeepLoggedIn(!keepLoggedIn)}
-                label="Keep me logged in"
-              />
-              <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.7}>
-                <Text style={styles.forgotPassword}>Forgot Password?</Text>
-              </TouchableOpacity>
-            </View>
+            {isEmail(emailOrPhone) && (
+              <Animated.View layout={Layout.springify()}>
+                <PasswordInput
+                  label="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                />
+              </Animated.View>
+            )}
 
             <PrimaryButton
-              title="Continue"
+              title={buttonText}
               onPress={handleContinue}
               loading={loading}
-              disabled={!email || !password}
+              disabled={!emailOrPhone || (isEmail(emailOrPhone) && !password)}
             />
           </Animated.View>
         )}
 
-        {/* Persistent Social Buttons - Always on screen, animates position */}
+        {/* Persistent Social Buttons */}
         <Animated.View layout={Layout.springify().delay(200)} style={styles.socialContainer}>
           <SocialAuthButton 
             provider="google" 
@@ -176,7 +199,7 @@ export const CreateAccountWelcomeScreen: React.FC<CreateAccountWelcomeScreenProp
           <SocialAuthButton provider="apple" onPress={handleAppleAuth} />
         </Animated.View>
 
-        {/* Persistent Divider - Always on screen, animates position */}
+        {/* Persistent Divider */}
         <Animated.View layout={Layout.springify().delay(200)} style={styles.dividerContainer}>
           <DividerWithText />
         </Animated.View>
@@ -191,7 +214,7 @@ export const CreateAccountWelcomeScreen: React.FC<CreateAccountWelcomeScreenProp
           </Animated.View>
         )}
 
-        {/* Persistent Footer - Always on screen, animates position */}
+        {/* Persistent Footer */}
         <Animated.View style={styles.footer} layout={Layout.springify().delay(300)}>
           <Text style={styles.footerText}>Already have an account? </Text>
           <TouchableOpacity onPress={handleSignIn} activeOpacity={0.7}>
@@ -252,23 +275,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.32,
     fontWeight: '400',
   },
-  optionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-    marginTop: 10,
-  },
-  forgotPassword: {
-    fontSize: 14,
-    color: '#008102',
-    fontWeight: '400',
-    letterSpacing: -0.32,
-    lineHeight: 18,
-  },
   socialContainer: {
     marginTop: 32,
-    // marginBottom: 32,
   },
   dividerContainer: {
     marginTop: 8,

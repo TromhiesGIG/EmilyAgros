@@ -210,15 +210,11 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
   const handleStartChatting = () => {
     if (!product) return;
     
-    // Generate chatId using the same format as messaging system
-    const chatId = [user!.id, product.user_id, productId].sort().join('_');
-    
     navigation.navigate('ChatDetail', {
-      chatId: chatId,
-      sellerName: product.profiles?.full_name || 'Seller',
-      adTitle: product.title,
-      adPrice: product.price,
-      adImage: product.images?.[0] || '',
+      receiverId: product.user_id,
+      receiverName: product.profiles?.full_name || 'Seller',
+      receiverAvatar: product.profiles?.avatar_url,
+      adId: productId,
     });
   };
 

@@ -1,5 +1,6 @@
+// src/screens/auth/AccountSuccessScreen.tsx
 import React from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../../App';
 import { PrimaryButton } from '../../components/auth';
@@ -9,13 +10,12 @@ type AccountSuccessScreenProps = {
 };
 
 export const AccountSuccessScreen: React.FC<AccountSuccessScreenProps> = ({ navigation }) => {
- const handleEnterApp = () => {
-  navigation.reset({
-  index: 0,
-  routes: [{ name: 'MainApp' }],
-});
-  console.log('Navigate to main app');
-};
+  const handleEnterApp = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'MainApp' }],
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -28,7 +28,7 @@ export const AccountSuccessScreen: React.FC<AccountSuccessScreenProps> = ({ navi
 
       {/* Title */}
       <Text style={styles.title}>Account created successfully</Text>
-      
+
       {/* Subtitle */}
       <Text style={styles.subtitle}>
         Your account has been created successfully.
@@ -59,12 +59,11 @@ const styles = StyleSheet.create({
   badge: {
     width: 120,
     height: 120,
-    backgroundColor: '#00A651',
+    backgroundColor: '#008102', // ← FIXED: Changed from #00A651 to brand green
     borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    // Wavy edge effect approximation
-    shadowColor: '#00A651',
+    shadowColor: '#008102',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 10,

@@ -15,6 +15,7 @@ export const HomeScreen = ({ navigation }: any) => {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   const fetchData = async () => {
     setLoading(true);
@@ -194,7 +195,9 @@ export const HomeScreen = ({ navigation }: any) => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Trending</Text>
-            <LayoutGrid size={24} color="#4B5768" />
+            <TouchableOpacity onPress={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
+              <LayoutGrid size={24} color="#4B5768" />
+            </TouchableOpacity>
           </View>
 
           {loading ? (
@@ -210,13 +213,16 @@ export const HomeScreen = ({ navigation }: any) => {
               </TouchableOpacity>
             </View>
           ) : (
-            trendingAds.map(ad => (
-              <ProductCard
-                key={ad.id}
-                product={ad}
-                onPress={() => navigation.navigate('AdDetails', { adId: ad.id })}
-              />
-            ))
+            <View style={viewMode === 'grid' ? styles.trendingGrid : styles.trendingList}>
+              {trendingAds.map(ad => (
+                <ProductCard
+                  key={ad.id}
+                  product={ad}
+                  viewMode={viewMode}
+                  onPress={() => navigation.navigate('AdDetails', { adId: ad.id })}
+                />
+              ))}
+            </View>
           )}
         </View>
 
@@ -305,5 +311,13 @@ const styles = StyleSheet.create({
     borderRadius: 20 
   },
   postAdText: { color: '#FFFFFF', fontWeight: '600', fontSize: 15 },
+  trendingGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 8,
+  },
+  trendingList: {
+    paddingHorizontal: 0,
+  },
   bottomPadding: { height: 40 },
 });

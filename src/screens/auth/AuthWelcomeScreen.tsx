@@ -1,3 +1,4 @@
+// src/screens/auth/AuthWelcomeScreen.tsx - UPDATED
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView, Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -32,13 +33,6 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ navigation
     }, [])
   );
 
-  // Reset to state 1 whenever screen comes into focus
-  useFocusEffect(
-    React.useCallback(() => {
-      setIsEmailSignIn(false);
-    }, [])
-  );
-
   const isEmail = (input: string): boolean => input.includes('@');
   const isPhone = (input: string): boolean => {
     const digits = input.replace(/\D/g, '');
@@ -63,7 +57,10 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ navigation
         const formattedPhone = formatNigerianPhone(emailOrPhone);
         const result = await sendPhoneOTP(formattedPhone);
         if (result.success) {
-          navigation.navigate('PhoneVerify', { phoneNumber: formattedPhone });
+          navigation.navigate('PhoneVerify', { 
+            phoneNumber: formattedPhone,
+            isSignup: false  // This is sign in, not signup
+          });
         } else {
           Alert.alert('Error', result.error || 'Failed to send OTP');
         }
@@ -96,11 +93,13 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ navigation
   };
   
   const handleAppleAuth = () => Alert.alert('Coming Soon', 'Apple Sign-In will be available soon!');
-  const handleForgotPassword = () => console.log('Forgot password pressed');
+  
+  // FIXED: Navigate to ForgotPassword screen
+  const handleForgotPassword = () => navigation.navigate('ForgotPassword');
+  
   const handleCreateAccount = () => navigation.navigate('CreateAccountWelcome');
   
   const handleShowEmailSignIn = () => setIsEmailSignIn(true);
-  const handleBack = () => setIsEmailSignIn(false);
 
   const needsPassword = isEmail(emailOrPhone);
   const buttonText = isPhone(emailOrPhone) ? 'Send Code' : 'Sign In';
@@ -115,8 +114,6 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ navigation
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-
-
         {!isEmailSignIn && (
           <Animated.View 
             style={styles.logoContainer} 
@@ -151,7 +148,9 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ navigation
                     <PasswordInput label="Password" value={password} onChangeText={setPassword} />
                     <View style={styles.optionsRow}>
                         <CustomCheckbox checked={keepLoggedIn} onPress={() => setKeepLoggedIn(!keepLoggedIn)} label="Keep me logged in"/>
-                        <TouchableOpacity onPress={handleForgotPassword}><Text style={styles.forgotPassword}>Forgot Password?</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={handleForgotPassword}>
+                          <Text style={styles.forgotPassword}>Forgot Password?</Text>
+                        </TouchableOpacity>
                     </View>
                 </Animated.View>
             )}
@@ -164,13 +163,13 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ navigation
           </Animated.View>
         )}
 
-        {/* Persistent Social Buttons - Always on screen, animates position */}
+        {/* Persistent Social Buttons */}
         <Animated.View layout={Layout.springify().delay(200)} style={styles.socialContainer}>
           <SocialAuthButton provider="google" onPress={handleGoogleAuth} disabled={googleLoading} />
           <SocialAuthButton provider="apple" onPress={handleAppleAuth} />
         </Animated.View>
 
-        {/* Persistent Divider - Always on screen, animates position */}
+        {/* Persistent Divider */}
         <Animated.View layout={Layout.springify().delay(200)} style={styles.dividerContainer}>
           <DividerWithText />
         </Animated.View>
@@ -182,7 +181,7 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ navigation
           </Animated.View>
         )}
 
-        {/* Persistent Footer - Always on screen, animates position */}
+        {/* Persistent Footer */}
         <Animated.View style={styles.footer} layout={Layout.springify().delay(300)}>
           <Text style={styles.footerText}>Don't have an account? </Text>
           <TouchableOpacity onPress={handleCreateAccount} activeOpacity={0.7}>
@@ -218,19 +217,8 @@ const styles = StyleSheet.create({
         paddingTop: 60,
         paddingBottom: 40,
     },
-    backButtonContainer: {
-        position: 'absolute',
-        top: 60,
-        left: 20,
-        zIndex: 10,
-    },
-    backButtonText: {
-        fontSize: 28,
-        color: '#111827',
-    },
     logoContainer: {
         alignItems: 'center',
-        // marginBottom: 40,
     },
     logo: {
         width: 80,
@@ -244,7 +232,6 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         lineHeight: 38,
         letterSpacing: -0.32,
-
     },
     subtitle: {
         fontSize: 16,
@@ -268,20 +255,12 @@ const styles = StyleSheet.create({
         letterSpacing: -0.32,
         lineHeight: 18,
     },
-    helpText: {
-        fontSize: 14,
-        color: '#4B5768',
-        marginTop: -12,
-        marginBottom: 24,
-        lineHeight: 20,
-    },
     dividerContainer: {
         marginTop: 8,
         marginBottom: 8,
     },
     socialContainer: {
         marginTop: 32,
-        // marginBottom: 32,
     },
     footer: {
         flexDirection: 'row',

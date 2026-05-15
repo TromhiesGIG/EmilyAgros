@@ -13,7 +13,7 @@ type PhoneVerifyScreenProps = {
 };
 
 export const PhoneVerifyScreen: React.FC<PhoneVerifyScreenProps> = ({ navigation, route }) => {
-  const { phoneNumber } = route.params;
+  const { phoneNumber, isSignup } = route.params;
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -25,13 +25,20 @@ export const PhoneVerifyScreen: React.FC<PhoneVerifyScreenProps> = ({ navigation
     }
 
     setLoading(true);
-
     try {
       const result = await verifyPhoneOTP(phoneNumber, code);
-
+      
       if (result.success) {
-        // AuthProvider will automatically redirect to MainApp
-        // No need to navigate manually
+        if (isSignup) {
+          // For signup: Navigate to name collection
+          navigation.navigate('NameCollection', {
+            phoneNumber,
+            isPhoneAuth: true,
+          });
+        } else {
+          // For sign in: AuthProvider will automatically redirect to MainApp
+          // No need to navigate manually
+        }
       } else {
         Alert.alert('Error', result.error || 'Invalid code');
       }
@@ -45,10 +52,8 @@ export const PhoneVerifyScreen: React.FC<PhoneVerifyScreenProps> = ({ navigation
 
   const handleResendCode = async () => {
     setResending(true);
-
     try {
       const result = await sendPhoneOTP(phoneNumber);
-
       if (result.success) {
         Alert.alert('Success', 'Code resent to your phone');
       } else {
@@ -67,39 +72,42 @@ export const PhoneVerifyScreen: React.FC<PhoneVerifyScreenProps> = ({ navigation
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Enter verification code</Text>
+      <Text style={styles.title}>Verification code</Text>
       <Text style={styles.subtitle}>
-        We sent a 6-digit code to {maskedPhone}
+        You need to enter the 4-digit code that we sent to your phone number
       </Text>
 
-      <CustomTextInput
-        label="Verification Code"
-        value={code}
-        onChangeText={setCode}
-        keyboardType="number-pad"
-        placeholder="000000"
-        autoCorrect={false}
-      />
-
-      <PrimaryButton
-        title="Verify"
-        onPress={handleVerify}
-        loading={loading}
-        disabled={code.length !== 6}
-      />
+      <View style={styles.codeContainer}>
+        {/* TODO: Replace with proper 4-digit code input boxes */}
+        <CustomTextInput
+          label="Verification Code"
+          value={code}
+          onChangeText={setCode}
+          keyboardType="number-pad"
+          placeholder="000000"
+          autoCorrect={false}
+        />
+      </View>
 
       <View style={styles.resendContainer}>
-        <Text style={styles.resendText}>Didn't receive the code? </Text>
+        <Text style={styles.resendText}>I didn't receive a code </Text>
         <TouchableOpacity 
           onPress={handleResendCode} 
           disabled={resending}
           activeOpacity={0.7}
         >
           <Text style={[styles.resendLink, resending && styles.resendLinkDisabled]}>
-            {resending ? 'Sending...' : 'Resend'}
+            RESEND
           </Text>
         </TouchableOpacity>
       </View>
+
+      <PrimaryButton
+        title="Confirm"
+        onPress={handleVerify}
+        loading={loading}
+        disabled={code.length !== 6}
+      />
     </View>
   );
 };
@@ -123,11 +131,14 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     lineHeight: 24,
   },
+  codeContainer: {
+    marginBottom: 24,
+  },
   resendContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginBottom: 24,
   },
   resendText: {
     fontSize: 14,

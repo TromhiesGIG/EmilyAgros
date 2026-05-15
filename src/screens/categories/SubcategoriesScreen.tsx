@@ -1,95 +1,110 @@
-// src/screens/categories/SubcategoriesScreen.tsx
+// src/screens/categories/SubcategoriesScreen.tsx - FIXED QUERY
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  TouchableOpacity, 
-  StyleSheet, 
-  ActivityIndicator 
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { ArrowLeft, ChevronRight } from 'lucide-react-native';
 import { HomeStackParamList } from '../../navigation/types';
+import { SearchBar } from '../../components/search/SearchBar';
 import { supabase } from '../../services/supabase';
 
-type SubcategoriesScreenNavigationProp = StackNavigationProp<
-  HomeStackParamList,
-  'Subcategories'
->;
-
-type SubcategoriesScreenRouteProp = RouteProp<HomeStackParamList, 'Subcategories'>;
-
-interface SubcategoriesScreenProps {
-  navigation: SubcategoriesScreenNavigationProp;
-  route: SubcategoriesScreenRouteProp;
-}
+type SubcategoriesScreenProps = {
+  navigation: NativeStackNavigationProp<HomeStackParamList, 'Subcategories'>;
+  route: RouteProp<HomeStackParamList, 'Subcategories'>;
+};
 
 interface Subcategory {
   id: number;
   name: string;
-  slug: string;
-  ad_count?: number;
+  category_id: number;
+  ad_count: number;
 }
 
-export const SubcategoriesScreen: React.FC<SubcategoriesScreenProps> = ({ 
-  navigation, 
-  route 
+export const SubcategoriesScreen: React.FC<SubcategoriesScreenProps> = ({
+  navigation,
+  route,
 }) => {
   const { categoryId, categoryName } = route.params;
+
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [filteredSubcategories, setFilteredSubcategories] = useState<Subcategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchSubcategories();
   }, [categoryId]);
 
+  useEffect(() => {
+    filterSubcategories();
+  }, [searchQuery, subcategories]);
+
   const fetchSubcategories = async () => {
     try {
-      // Fetch subcategories
-      const { data: subData, error: subError } = await supabase
+      setLoading(true);
+      
+      // FIXED: Get subcategories first
+      const { data: subcategoriesData, error: subcategoriesError } = await supabase
         .from('subcategories')
-        .select('*')
+        .select('id, name, category_id')
         .eq('category_id', categoryId)
         .order('name', { ascending: true });
 
-      if (subError) throw subError;
+      if (subcategoriesError) throw subcategoriesError;
 
-      if (subData) {
-        // Fetch ad counts for each subcategory
-        const { data: countData, error: countError } = await supabase
-          .from('products')
-          .select('subcategory_id')
-          .eq('category_id', categoryId)
-          .eq('status', 'Active');
-
-        if (!countError && countData) {
-          // Count ads per subcategory
-          const countMap: Record<number, number> = {};
-          countData.forEach((row: any) => {
-            if (row.subcategory_id) {
-              countMap[row.subcategory_id] = (countMap[row.subcategory_id] || 0) + 1;
-            }
-          });
-
-          // Add counts to subcategories
-          const subWithCounts = subData.map(sub => ({
-            ...sub,
-            ad_count: countMap[sub.id] || 0,
-          }));
-
-          setSubcategories(subWithCounts);
-        } else {
-          setSubcategories(subData);
-        }
+      if (!subcategoriesData || subcategoriesData.length === 0) {
+        setSubcategories([]);
+        setFilteredSubcategories([]);
+        setLoading(false);
+        return;
       }
+
+      // FIXED: Get product counts separately
+      const subcategoriesWithCount = await Promise.all(
+        subcategoriesData.map(async (sub) => {
+          const { count, error: countError } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('subcategory_id', sub.id);
+
+          if (countError) {
+            console.error('Error counting products:', countError);
+          }
+
+          return {
+            ...sub,
+            ad_count: count || 0,
+          };
+        })
+      );
+
+      setSubcategories(subcategoriesWithCount);
+      setFilteredSubcategories(subcategoriesWithCount);
     } catch (error) {
       console.error('Error fetching subcategories:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterSubcategories = () => {
+    if (!searchQuery.trim()) {
+      setFilteredSubcategories(subcategories);
+      return;
+    }
+
+    const filtered = subcategories.filter((sub) =>
+      sub.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredSubcategories(filtered);
   };
 
   const handleSubcategoryPress = (subcategory: Subcategory) => {
@@ -101,6 +116,20 @@ export const SubcategoriesScreen: React.FC<SubcategoriesScreenProps> = ({
     });
   };
 
+  const renderSubcategory = ({ item }: { item: Subcategory }) => (
+    <TouchableOpacity
+      style={styles.subcategoryItem}
+      onPress={() => handleSubcategoryPress(item)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.subcategoryInfo}>
+        <Text style={styles.subcategoryName}>{item.name}</Text>
+        <Text style={styles.adCount}>{item.ad_count} ads</Text>
+      </View>
+      <ChevronRight size={20} color="#9CA3AF" />
+    </TouchableOpacity>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -108,10 +137,12 @@ export const SubcategoriesScreen: React.FC<SubcategoriesScreenProps> = ({
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <ArrowLeft size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{categoryName}</Text>
+          <Text style={styles.title}>{categoryName}</Text>
           <View style={{ width: 24 }} />
         </View>
-        <ActivityIndicator size="large" color="#008102" style={{ marginTop: 40 }} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#008102" />
+        </View>
       </SafeAreaView>
     );
   }
@@ -123,35 +154,36 @@ export const SubcategoriesScreen: React.FC<SubcategoriesScreenProps> = ({
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <ArrowLeft size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{categoryName}</Text>
+        <Text style={styles.title}>{categoryName}</Text>
         <View style={{ width: 24 }} />
       </View>
 
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <SearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="What are you looking for?"
+        />
+      </View>
+
       {/* Subcategories List */}
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {subcategories.map((subcategory) => (
-          <TouchableOpacity
-            key={subcategory.id}
-            style={styles.subcategoryItem}
-            onPress={() => handleSubcategoryPress(subcategory)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.subcategoryContent}>
-              <Text style={styles.subcategoryName}>{subcategory.name}</Text>
-              <Text style={styles.adCount}>
-                {subcategory.ad_count || 0} ads
-              </Text>
-            </View>
-            <ChevronRight size={20} color="#9CA3AF" />
-          </TouchableOpacity>
-        ))}
-        
-        {subcategories.length === 0 && (
+      <FlatList
+        data={filteredSubcategories}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderSubcategory}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No subcategories available</Text>
+            <Text style={styles.emptyStateText}>
+              {searchQuery 
+                ? `No subcategories found for "${searchQuery}"`
+                : 'No subcategories available'
+              }
+            </Text>
           </View>
-        )}
-      </ScrollView>
+        }
+      />
     </SafeAreaView>
   );
 };
@@ -159,38 +191,42 @@ export const SubcategoriesScreen: React.FC<SubcategoriesScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F8F9',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#F3F4F6',
   },
-  headerTitle: {
+  title: {
+    flex: 1,
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
-    flex: 1,
     textAlign: 'center',
   },
-  scrollView: {
-    flex: 1,
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
+  },
+  listContent: {
+    paddingBottom: 20,
   },
   subcategoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 20,
     paddingVertical: 16,
-    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  subcategoryContent: {
+  subcategoryInfo: {
     flex: 1,
   },
   subcategoryName: {
@@ -200,16 +236,22 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   adCount: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#6B7280',
   },
-  emptyState: {
-    alignItems: 'center',
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
-    paddingVertical: 60,
+    alignItems: 'center',
   },
-  emptyText: {
-    fontSize: 15,
-    color: '#9CA3AF',
+  emptyState: {
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });

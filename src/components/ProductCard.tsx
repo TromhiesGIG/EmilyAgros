@@ -6,13 +6,13 @@ import { MapPin } from 'lucide-react-native';
 interface ProductCardProps {
   product: any;
   onPress: () => void;
-  layout?: 'list' | 'grid';
+  viewMode?: 'list' | 'grid';
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ 
   product, 
   onPress,
-  layout = 'list'
+  viewMode = 'list'
 }) => {
   const imageUri = product.images?.[0] || 'https://via.placeholder.com/100x100?text=No+Image';
   const price = product.price ? `₦${Number(product.price).toLocaleString()}` : 'Price on request';
@@ -20,7 +20,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     .filter(Boolean)
     .join(', ') || 'Location not specified';
 
-  if (layout === 'grid') {
+  if (viewMode === 'grid') {
     return (
       <TouchableOpacity 
         style={styles.gridCard} 

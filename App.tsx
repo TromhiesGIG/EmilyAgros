@@ -1,9 +1,9 @@
-// App.tsx - UPDATED with SafeAreaProvider, MainTabNavigator and Presence
+// App.tsx - UPDATED with new auth screens
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context'; // ← ADDED
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { usePresence } from './src/hooks/usePresence';
 import SplashScreen from './src/screens/splash/SplashScreen';
@@ -13,6 +13,10 @@ import { CreateAccountWelcomeScreen } from './src/screens/auth/CreateAccountWelc
 import { NameCollectionScreen } from './src/screens/auth/NameCollectionScreen';
 import { AccountSuccessScreen } from './src/screens/auth/AccountSuccessScreen';
 import { PhoneVerifyScreen } from './src/screens/auth/PhoneVerifyScreen';
+import { ForgotPasswordScreen } from './src/screens/auth/ForgotPasswordScreen';
+import { ConfirmationCodeScreen } from './src/screens/auth/ConfirmationCodeScreen';
+import { ResetLinkSentScreen } from './src/screens/auth/ResetLinkSentScreen';
+import { UpdatePasswordScreen } from './src/screens/auth/UpdatePasswordScreen';
 import { MainTabNavigator } from './src/navigation/MainTabNavigator';
 
 export type RootStackParamList = {
@@ -23,13 +27,26 @@ export type RootStackParamList = {
   CreateAccountWelcome: undefined;
   CreateAccountForm: undefined;
   NameCollection: {
-    email: string;
-    password: string;
+    email?: string;
+    password?: string;
+    phoneNumber?: string;
+    isPhoneAuth?: boolean;
     keepLoggedIn?: boolean;
   };
   AccountSuccess: undefined;
   MainApp: undefined;
-  PhoneVerify: { phoneNumber: string };
+  PhoneVerify: { 
+    phoneNumber: string;
+    isSignup?: boolean;
+  };
+  ForgotPassword: undefined;
+  ConfirmationCode: { phoneNumber: string };
+  ResetLinkSent: { email: string };
+  UpdatePassword: { 
+    phoneNumber?: string;
+    access_token?: string;
+    refresh_token?: string;
+  };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -46,8 +63,26 @@ const Navigation = () => {
     );
   }
 
+  // Deep linking configuration
+  const linking = {
+    prefixes: ['emilyagros://', 'https://emilyagros.com'],
+    config: {
+      screens: {
+        UpdatePassword: {
+          path: 'reset-password',
+          parse: {
+            access_token: (token: string) => token,
+            refresh_token: (token: string) => token,
+          },
+        },
+        AuthWelcome: 'auth/welcome',
+        Splash: '',
+      },
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -90,6 +125,10 @@ const Navigation = () => {
             />
             <Stack.Screen name="AccountSuccess" component={AccountSuccessScreen} />
             <Stack.Screen name="PhoneVerify" component={PhoneVerifyScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            <Stack.Screen name="ConfirmationCode" component={ConfirmationCodeScreen} />
+            <Stack.Screen name="ResetLinkSent" component={ResetLinkSentScreen} />
+            <Stack.Screen name="UpdatePassword" component={UpdatePasswordScreen} />
           </>
         )}
       </Stack.Navigator>
@@ -99,7 +138,7 @@ const Navigation = () => {
 
 export default function App() {
   return (
-    <SafeAreaProvider> {/* ← WRAP EVERYTHING */}
+    <SafeAreaProvider>
       <AuthProvider>
         <Navigation />
       </AuthProvider>
