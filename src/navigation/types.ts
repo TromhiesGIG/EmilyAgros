@@ -1,5 +1,7 @@
 // src/navigation/types.ts
 
+import { PromotionType, PlanDuration, BundleName, PromotionStatus } from '../types/promotions';
+
 export type HomeStackParamList = {
   Home: undefined;
   AllCategories: undefined;
@@ -15,27 +17,23 @@ export type HomeStackParamList = {
   };
   ProductDetail: { productId: string };
   AdDetails: { adId: string };
-  
   // Profile & Account
   Profile: undefined;
   AccountSettings: undefined;
   PersonalInfo: undefined;
   EmailAddress: undefined;
   ChangePassword: undefined;
-  
   // Settings
   GeneralSettings: undefined;
   ManageNotifications: undefined;
   LocationAccess: undefined;
   Permissions: undefined;
-  
   // Marketplace & Social
   MyAds: undefined;
   SavedItems: undefined;
   Follows: undefined;
   SellerProfile: { sellerId: string };
   LeaveReview: { sellerId: string; sellerName: string };
-  
   // Chat
   ChatDetail: {
     receiverId: string;
@@ -43,12 +41,73 @@ export type HomeStackParamList = {
     receiverAvatar?: string;
     adId?: string;
   };
-  
   // Financial
   MyWallet: undefined;
   WalletRecharge: undefined;
   Subscriptions: undefined;
   PlanManagement: undefined;
+  // Promotions (entry from MyAds Boost button or post-ad success)
+  PromotionType: { productId?: string } | undefined;
+  AdSelection: {
+    promotionType: PromotionType;
+    bundleName?: BundleName;
+    preselectedProductId?: string;
+  };
+  PlanSelection: {
+    promotionType: PromotionType;
+    bundleName?: BundleName;
+    productId: string;
+    productTitle: string;
+  };
+  PromotionPayment: {
+    promotionType: PromotionType;
+    bundleName?: BundleName;
+    productId: string;
+    productTitle: string;
+    planDuration: PlanDuration;
+    amount: number;
+  };
+  PromotionConfirmation: {
+    promotionType: PromotionType;
+    planDuration: PlanDuration;
+    expiresAt?: string;
+    status: PromotionStatus;
+    amount?: number;
+    productTitle?: string;
+  };
+  MyPromotions: undefined;
+};
+
+export type PromotionsStackParamList = {
+  MyPromotions: undefined;
+  PromotionType: { productId?: string } | undefined;
+  AdSelection: {
+    promotionType: PromotionType;
+    bundleName?: BundleName;
+    preselectedProductId?: string;
+  };
+  PlanSelection: {
+    promotionType: PromotionType;
+    bundleName?: BundleName;
+    productId: string;
+    productTitle: string;
+  };
+  PromotionPayment: {
+    promotionType: PromotionType;
+    bundleName?: BundleName;
+    productId: string;
+    productTitle: string;
+    planDuration: PlanDuration;
+    amount: number;
+  };
+  PromotionConfirmation: {
+    promotionType: PromotionType;
+    planDuration: PlanDuration;
+    expiresAt?: string;
+    status: PromotionStatus;
+    amount?: number;
+    productTitle?: string;
+  };
 };
 
 export type RootTabParamList = {
@@ -57,6 +116,7 @@ export type RootTabParamList = {
   SellTab: undefined;
   MessagesTab: undefined;
   MoreTab: undefined;
+  PromotionsTab: undefined;
 };
 
 export interface Category {
@@ -98,3 +158,5 @@ export interface Product {
   updated_at: string;
   expires_at?: string;
 }
+
+export type MainTabParamList = RootTabParamList;

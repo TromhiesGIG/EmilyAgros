@@ -47,33 +47,30 @@ export const MyAdsScreen = ({ navigation }: any) => {
             <Text style={styles.adTitle} numberOfLines={1}>{item.title}</Text>
             <Text style={styles.adPrice}>{price}</Text>
             <Text style={styles.adLocation} numberOfLines={1}>📍 {location}</Text>
-            <Text style={styles.metrics}>
-              {item.views || 0} views
-            </Text>
+            <Text style={styles.metrics}>{item.views || 0} views</Text>
           </View>
         </View>
 
         <View style={styles.cardFooter}>
           <Text style={styles.createdText}>
             {new Date(item.created_at).toLocaleDateString('en-NG', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric'
+              day: 'numeric', month: 'short', year: 'numeric'
             })}
           </Text>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              item.status === 'Cancelled' ? styles.reactivateButton : styles.boostButton
-            ]}
-          >
-            <Text style={[
-              styles.actionButtonText,
-              item.status === 'Cancelled' && styles.reactivateButtonText
-            ]}>
-              {item.status === 'Active' ? 'Boost' : 'Reactivate'}
-            </Text>
-          </TouchableOpacity>
+
+          {item.status === 'Active' ? (
+            // ⚡ Boost button — opens promotion flow pre-selecting this ad
+            <TouchableOpacity
+              style={styles.boostButton}
+              onPress={() => navigation.navigate('PromotionType', { productId: item.id })}
+            >
+              <Text style={styles.boostButtonText}>⚡ Boost</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.reactivateButton}>
+              <Text style={styles.reactivateButtonText}>Reactivate</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -141,41 +138,40 @@ export const MyAdsScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  tabBar: { flexDirection: 'row', paddingHorizontal: 16 },
-  tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
-  activeTab: { borderBottomWidth: 3, borderBottomColor: '#008102' },
-  tabText: { fontSize: 16, color: '#6B7280', fontWeight: '500' },
-  activeTabText: { color: '#008102', fontWeight: '700' },
-  listContent: { padding: 16 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#F3F4F6', marginBottom: 16, overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
-  cardMain: { flexDirection: 'row', padding: 12 },
-  adImage: { width: 100, height: 100, borderRadius: 8, backgroundColor: '#F3F4F6' },
-  adInfo: { flex: 1, marginLeft: 12 },
-  statusHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  activeBadge: { backgroundColor: '#DCFCE7' },
-  cancelledBadge: { backgroundColor: '#FEE2E2' },
-  statusText: { fontSize: 11, fontWeight: '600' },
-  activeText: { color: '#166534' },
-  cancelledText: { color: '#B91C1C' },
-  adTitle: { fontSize: 15, fontWeight: '600', color: '#111827', marginBottom: 2 },
-  adPrice: { fontSize: 15, fontWeight: '700', color: '#008102', marginBottom: 2 },
-  adLocation: { fontSize: 12, color: '#6B7280', marginBottom: 4 },
-  metrics: { fontSize: 12, color: '#6B7280' },
-  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
-  createdText: { fontSize: 13, color: '#6B7280' },
-  actionButton: { paddingHorizontal: 24, paddingVertical: 8, borderRadius: 20 },
-  boostButton: { backgroundColor: '#008102' },
-  reactivateButton: { borderWidth: 1, borderColor: '#008102' },
-  actionButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
-  reactivateButtonText: { color: '#008102' },
-  emptyContainer: { alignItems: 'center', marginTop: 80, paddingHorizontal: 40 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 8 },
-  emptySubtitle: { fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 24 },
-  postBtn: { backgroundColor: '#008102', paddingHorizontal: 32, paddingVertical: 12, borderRadius: 24 },
-  postBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
+  safeArea:             { flex: 1, backgroundColor: '#FFFFFF' },
+  header:               { borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  headerTop:            { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
+  headerTitle:          { fontSize: 18, fontWeight: '700', color: '#111827' },
+  tabBar:               { flexDirection: 'row', paddingHorizontal: 16 },
+  tab:                  { flex: 1, paddingVertical: 12, alignItems: 'center' },
+  activeTab:            { borderBottomWidth: 3, borderBottomColor: '#008102' },
+  tabText:              { fontSize: 16, color: '#6B7280', fontWeight: '500' },
+  activeTabText:        { color: '#008102', fontWeight: '700' },
+  listContent:          { padding: 16 },
+  card:                 { backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#F3F4F6', marginBottom: 16, overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
+  cardMain:             { flexDirection: 'row', padding: 12 },
+  adImage:              { width: 100, height: 100, borderRadius: 8, backgroundColor: '#F3F4F6' },
+  adInfo:               { flex: 1, marginLeft: 12 },
+  statusHeader:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 },
+  statusBadge:          { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  activeBadge:          { backgroundColor: '#DCFCE7' },
+  cancelledBadge:       { backgroundColor: '#FEE2E2' },
+  statusText:           { fontSize: 11, fontWeight: '600' },
+  activeText:           { color: '#166534' },
+  cancelledText:        { color: '#B91C1C' },
+  adTitle:              { fontSize: 15, fontWeight: '600', color: '#111827', marginBottom: 2 },
+  adPrice:              { fontSize: 15, fontWeight: '700', color: '#008102', marginBottom: 2 },
+  adLocation:           { fontSize: 12, color: '#6B7280', marginBottom: 4 },
+  metrics:              { fontSize: 12, color: '#6B7280' },
+  cardFooter:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  createdText:          { fontSize: 13, color: '#6B7280' },
+  boostButton:          { backgroundColor: '#008102', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20 },
+  boostButtonText:      { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
+  reactivateButton:     { borderWidth: 1, borderColor: '#008102', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20 },
+  reactivateButtonText: { color: '#008102', fontWeight: '600', fontSize: 14 },
+  emptyContainer:       { alignItems: 'center', marginTop: 80, paddingHorizontal: 40 },
+  emptyTitle:           { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  emptySubtitle:        { fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 24 },
+  postBtn:              { backgroundColor: '#008102', paddingHorizontal: 32, paddingVertical: 12, borderRadius: 24 },
+  postBtnText:          { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
 });

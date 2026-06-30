@@ -10,26 +10,26 @@ import { SubcategoriesScreen } from '../screens/categories/SubcategoriesScreen';
 import { CategoryProductsScreen } from '../screens/categories/CategoryProductsScreen';
 import { ProductDetailScreen } from '../screens/products/ProductDetailScreen';
 
-// New Profile & Account Screens
+// Profile & Account Screens
 import { ProfileScreen } from '../screens/main/ProfileScreen';
 import { AccountSettingsScreen } from '../screens/main/AccountSettingsScreen';
 import { PersonalInfo } from '../screens/main/PersonalInfo';
 import { EmailAddressScreen } from '../screens/main/EmailAddressScreen';
 import { ChangePasswordScreen } from '../screens/main/ChangePasswordScreen';
 
-// New Settings & System Screens
+// Settings & System Screens
 import { GeneralSettingsScreen } from '../screens/main/GeneralSettingsScreen';
 import { ManageNotifications } from '../screens/main/ManageNotifications';
 import { LocationAccessScreen } from '../screens/main/LocationAccessScreen';
 import { PermissionsScreen } from '../screens/main/PermissionsScreen';
 
-// New Marketplace & Social Screens
+// Marketplace & Social Screens
 import { MyAdsScreen } from '../screens/main/MyAdsScreen';
 import { AdDetailsScreen } from '../screens/main/AdDetailsScreen';
 import { SavedItemsScreen } from '../screens/main/SavedItemsScreen';
 import { FollowsScreen } from '../screens/main/FollowsScreen';
 
-// New Financial & Subscription Screens
+// Financial & Subscription Screens
 import { MyWalletScreen } from '../screens/main/MyWalletScreen';
 import { WalletRechargeScreen } from '../screens/main/WalletRechargeScreen';
 import { SubscriptionsScreen } from '../screens/main/SubscriptionsScreen';
@@ -40,59 +40,62 @@ import { ChatDetail } from '../screens/main/ChatDetail';
 import { SellerProfileScreen } from '../screens/main/SellerProfileScreen';
 import { LeaveReviewScreen } from '../screens/main/LeaveReviewScreen';
 
+// Promotions Screens
+import { PromotionTypeScreen }         from '../screens/promotions/PromotionTypeScreen';
+import { AdSelectionScreen }           from '../screens/promotions/AdSelectionScreen';
+import { PlanSelectionScreen }         from '../screens/promotions/PlanSelectionScreen';
+import { PromotionPaymentScreen }      from '../screens/promotions/PromotionPaymentScreen';
+import { PromotionConfirmationScreen } from '../screens/promotions/PromotionConfirmationScreen';
+import { MyPromotionsScreen }          from '../screens/promotions/MyPromotionsScreen';
+
 const Stack = createStackNavigator<HomeStackParamList>();
 
 export const HomeStackNavigator: React.FC = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      {/* Core Screens */}
-      <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="AllCategories" component={AllCategoriesScreen} />
-      <Stack.Screen name="Subcategories" component={SubcategoriesScreen} />
-      <Stack.Screen name="CategoryProducts" component={CategoryProductsScreen} />
-      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {/* Core */}
+      <Stack.Screen name="Home"               component={HomeScreen} />
+      <Stack.Screen name="AllCategories"      component={AllCategoriesScreen} />
+      <Stack.Screen name="Subcategories"      component={SubcategoriesScreen} />
+      <Stack.Screen name="CategoryProducts"   component={CategoryProductsScreen} />
+      <Stack.Screen name="ProductDetail"      component={ProductDetailScreen} />
 
-      {/* Profile & Account Management */}
-      <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
-      <Stack.Screen name="PersonalInfo" component={PersonalInfo} />
-      <Stack.Screen name="EmailAddress" component={EmailAddressScreen} />
-      <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      {/* Profile & Account */}
+      <Stack.Screen name="Profile"            component={ProfileScreen} />
+      <Stack.Screen name="AccountSettings"    component={AccountSettingsScreen} />
+      <Stack.Screen name="PersonalInfo"       component={PersonalInfo} />
+      <Stack.Screen name="EmailAddress"       component={EmailAddressScreen} />
+      <Stack.Screen name="ChangePassword"     component={ChangePasswordScreen} />
 
-      {/* Settings & System */}
-      <Stack.Screen name="GeneralSettings" component={GeneralSettingsScreen} />
+      {/* Settings */}
+      <Stack.Screen name="GeneralSettings"    component={GeneralSettingsScreen} />
       <Stack.Screen name="ManageNotifications" component={ManageNotifications} />
-      <Stack.Screen name="LocationAccess" component={LocationAccessScreen} />
-      <Stack.Screen name="Permissions" component={PermissionsScreen} />
+      <Stack.Screen name="LocationAccess"     component={LocationAccessScreen} />
+      <Stack.Screen name="Permissions"        component={PermissionsScreen} />
 
       {/* Marketplace & Social */}
-      <Stack.Screen name="MyAds" component={MyAdsScreen} />
-      <Stack.Screen name="AdDetails" component={AdDetailsScreen} />
-      <Stack.Screen name="SavedItems" component={SavedItemsScreen} />
-      <Stack.Screen name="Follows" component={FollowsScreen} />
-      
-      {/* Seller Profile & Reviews */}
-      <Stack.Screen name="SellerProfile" component={SellerProfileScreen} />
-      <Stack.Screen name="LeaveReview" component={LeaveReviewScreen} />
-      
-      <Stack.Screen 
-        name="ChatDetail" 
-        component={ChatDetail}
-        options={{ 
-          presentation: 'card',
-          headerShown: false
-        }} 
-      />
+      <Stack.Screen name="MyAds"              component={MyAdsScreen} />
+      <Stack.Screen name="AdDetails"          component={AdDetailsScreen} />
+      <Stack.Screen name="SavedItems"         component={SavedItemsScreen} />
+      <Stack.Screen name="Follows"            component={FollowsScreen} />
+      <Stack.Screen name="SellerProfile"      component={SellerProfileScreen} />
+      <Stack.Screen name="LeaveReview"        component={LeaveReviewScreen} />
+      <Stack.Screen name="ChatDetail"         component={ChatDetail}
+        options={{ presentation: 'card', headerShown: false }} />
 
-      {/* Financials & Subscriptions */}
-      <Stack.Screen name="MyWallet" component={MyWalletScreen} />
-      <Stack.Screen name="WalletRecharge" component={WalletRechargeScreen} />
-      <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} />
-      <Stack.Screen name="PlanManagement" component={PlanManagementScreen} />
+      {/* Financials */}
+      <Stack.Screen name="MyWallet"           component={MyWalletScreen} />
+      <Stack.Screen name="WalletRecharge"     component={WalletRechargeScreen} />
+      <Stack.Screen name="Subscriptions"      component={SubscriptionsScreen} />
+      <Stack.Screen name="PlanManagement"     component={PlanManagementScreen} />
+
+      {/* Promotions — entry via MyAds Boost button or post-ad success */}
+      <Stack.Screen name="PromotionType"         component={PromotionTypeScreen} />
+      <Stack.Screen name="AdSelection"           component={AdSelectionScreen} />
+      <Stack.Screen name="PlanSelection"         component={PlanSelectionScreen} />
+      <Stack.Screen name="PromotionPayment"      component={PromotionPaymentScreen} />
+      <Stack.Screen name="PromotionConfirmation" component={PromotionConfirmationScreen} />
+      <Stack.Screen name="MyPromotions"          component={MyPromotionsScreen} />
     </Stack.Navigator>
   );
 };

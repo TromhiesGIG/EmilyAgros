@@ -1,4 +1,4 @@
-// App.tsx - UPDATED with new auth screens
+// App.tsx
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
@@ -18,6 +18,7 @@ import { ConfirmationCodeScreen } from './src/screens/auth/ConfirmationCodeScree
 import { ResetLinkSentScreen } from './src/screens/auth/ResetLinkSentScreen';
 import { UpdatePasswordScreen } from './src/screens/auth/UpdatePasswordScreen';
 import { MainTabNavigator } from './src/navigation/MainTabNavigator';
+import { AdminNavigator } from './src/navigation/AdminNavigator';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -35,14 +36,15 @@ export type RootStackParamList = {
   };
   AccountSuccess: undefined;
   MainApp: undefined;
-  PhoneVerify: { 
+  AdminApp: undefined;
+  PhoneVerify: {
     phoneNumber: string;
     isSignup?: boolean;
   };
   ForgotPassword: undefined;
   ConfirmationCode: { phoneNumber: string };
   ResetLinkSent: { email: string };
-  UpdatePassword: { 
+  UpdatePassword: {
     phoneNumber?: string;
     access_token?: string;
     refresh_token?: string;
@@ -52,7 +54,7 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 const Navigation = () => {
-  const { user, loading } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
   usePresence();
 
   if (loading) {
@@ -63,7 +65,6 @@ const Navigation = () => {
     );
   }
 
-  // Deep linking configuration
   const linking = {
     prefixes: ['emilyagros://', 'https://emilyagros.com'],
     config: {
@@ -81,56 +82,47 @@ const Navigation = () => {
     },
   };
 
+  // Decide where the user starts based on auth state
+  const initialRoute = user
+    ? isAdmin ? 'AdminApp' : 'MainApp'
+    : 'Splash';
+
   return (
     <NavigationContainer linking={linking}>
       <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-        }}
+        initialRouteName={initialRoute}
+        screenOptions={{ headerShown: false }}
       >
-        {user ? (
-          <Stack.Screen name="MainApp" component={MainTabNavigator} />
-        ) : (
-          <>
-            <Stack.Screen name="Splash" component={SplashScreen} />
-            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-            <Stack.Screen name="AuthWelcome" component={AuthWelcomeScreen} />
-            <Stack.Screen
-              name="CreateAccountWelcome"
-              component={CreateAccountWelcomeScreen}
-              options={{
-                cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
-                transitionSpec: {
-                  open: {
-                    animation: 'timing',
-                    config: {
-                      duration: 600,
-                    },
-                  },
-                  close: {
-                    animation: 'timing',
-                    config: {
-                      duration: 600,
-                    },
-                  },
-                },
-              }}
-            />
-            <Stack.Screen
-              name="NameCollection"
-              component={NameCollectionScreen}
-              options={{
-                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-              }}
-            />
-            <Stack.Screen name="AccountSuccess" component={AccountSuccessScreen} />
-            <Stack.Screen name="PhoneVerify" component={PhoneVerifyScreen} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-            <Stack.Screen name="ConfirmationCode" component={ConfirmationCodeScreen} />
-            <Stack.Screen name="ResetLinkSent" component={ResetLinkSentScreen} />
-            <Stack.Screen name="UpdatePassword" component={UpdatePasswordScreen} />
-          </>
-        )}
+        {/* ── Auth Screens — always registered ── */}
+        <Stack.Screen name="Splash"               component={SplashScreen} />
+        <Stack.Screen name="Onboarding"           component={OnboardingScreen} />
+        <Stack.Screen name="AuthWelcome"          component={AuthWelcomeScreen} />
+        <Stack.Screen
+          name="CreateAccountWelcome"
+          component={CreateAccountWelcomeScreen}
+          options={{
+            cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+            transitionSpec: {
+              open:  { animation: 'timing', config: { duration: 600 } },
+              close: { animation: 'timing', config: { duration: 600 } },
+            },
+          }}
+        />
+        <Stack.Screen
+          name="NameCollection"
+          component={NameCollectionScreen}
+          options={{ cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS }}
+        />
+        <Stack.Screen name="AccountSuccess"   component={AccountSuccessScreen} />
+        <Stack.Screen name="PhoneVerify"      component={PhoneVerifyScreen} />
+        <Stack.Screen name="ForgotPassword"   component={ForgotPasswordScreen} />
+        <Stack.Screen name="ConfirmationCode" component={ConfirmationCodeScreen} />
+        <Stack.Screen name="ResetLinkSent"    component={ResetLinkSentScreen} />
+        <Stack.Screen name="UpdatePassword"   component={UpdatePasswordScreen} />
+
+        {/* ── App Screens — always registered ── */}
+        <Stack.Screen name="MainApp"  component={MainTabNavigator} />
+        <Stack.Screen name="AdminApp" component={AdminNavigator} />
       </Stack.Navigator>
     </NavigationContainer>
   );

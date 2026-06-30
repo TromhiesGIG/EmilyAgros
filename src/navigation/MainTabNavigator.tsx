@@ -3,15 +3,26 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, Search, PlusCircle, MessageSquare, MoreHorizontal } from 'lucide-react-native';
 import { MainTabParamList } from './types';
-import { HomeStackNavigator } from './HomeStackNavigator';
-import { SellStackNavigator } from './SellStackNavigator';
-import { ProfileStackNavigator } from './ProfileStackNavigator';
-import { MessagesStackNavigator } from './MessagesStackNavigator'; // ← NEW
-import { PlaceholderScreen } from '../screens/main/PlaceholderScreen';
+import { HomeStackNavigator }     from './HomeStackNavigator';
+import { SellStackNavigator }     from './SellStackNavigator';
+import { ProfileStackNavigator }  from './ProfileStackNavigator';
+import { MessagesStackNavigator } from './MessagesStackNavigator';
+import { PlaceholderScreen }      from '../screens/main/PlaceholderScreen';
+import { useAuth }                from '../providers/AuthProvider';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-export const MainTabNavigator: React.FC = () => {
+export const MainTabNavigator: React.FC = ({ navigation }: any) => {
+  const { user, loading } = useAuth();
+
+  // Security guard — only redirect after auth has finished loading
+  // This prevents premature redirect during app startup
+  React.useEffect(() => {
+    if (!loading && !user) {
+      navigation.reset({ index: 0, routes: [{ name: 'AuthWelcome' }] });
+    }
+  }, [user, loading]);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -25,10 +36,7 @@ export const MainTabNavigator: React.FC = () => {
           borderTopWidth: 1,
           borderTopColor: '#E5E7EB',
         },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
       }}
     >
       <Tab.Screen
@@ -48,6 +56,7 @@ export const MainTabNavigator: React.FC = () => {
       >
         {() => <PlaceholderScreen title="Search" message="Search functionality coming soon" />}
       </Tab.Screen>
+
       <Tab.Screen
         name="SellTab"
         component={SellStackNavigator}
@@ -56,7 +65,7 @@ export const MainTabNavigator: React.FC = () => {
           tabBarIcon: ({ color, size }) => <PlusCircle size={size} color={color} />,
         }}
       />
-      {/* ✅ FIXED: Was PlaceholderScreen, now real MessagesStackNavigator */}
+
       <Tab.Screen
         name="MessagesTab"
         component={MessagesStackNavigator}
@@ -65,6 +74,7 @@ export const MainTabNavigator: React.FC = () => {
           tabBarIcon: ({ color, size }) => <MessageSquare size={size} color={color} />,
         }}
       />
+
       <Tab.Screen
         name="MoreTab"
         component={ProfileStackNavigator}
