@@ -673,18 +673,30 @@ export const PostNewAdScreen: React.FC<PostNewAdScreenProps> = ({
       await AsyncStorage.removeItem(DRAFT_KEY);
 
       Alert.alert(
-        'Success!',
-        'Your ad has been posted successfully.',
-        [{
-          text: 'OK',
-          onPress: () => {
-            setFormData(getInitialFormData());
-            setSelectedCategory(null);
-            setSelectedSubcategory(null);
-            navigation.goBack(); 
-          }
-        }]
-      );
+      '🎉 Ad Posted!',
+      'Your ad has been posted successfully. Would you like to boost it for more visibility?',
+      [
+        {
+      text: 'Not Now',
+      style: 'cancel',
+      onPress: () => {
+        setFormData(getInitialFormData());
+        setSelectedCategory(null);
+        setSelectedSubcategory(null);
+        navigation.getParent()?.navigate('HomeTab', { screen: 'MyAds' });
+      }
+    },
+    {
+      text: '⚡ Boost Ad',
+      onPress: () => {
+        setFormData(getInitialFormData());
+        setSelectedCategory(null);
+        setSelectedSubcategory(null);
+        navigation.getParent()?.navigate('MoreTab', { screen: 'Subscriptions' });
+      }
+    }
+  ]
+);
 
     } catch (error: any) {
       setIsLoading(false);

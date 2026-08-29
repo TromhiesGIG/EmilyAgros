@@ -107,7 +107,7 @@ export const BUNDLE_DETAILS: Record<BundleName, {
   },
 };
 
-export const PLAN_DURATION_LABELS: Record<PlanDuration, string> = {
+export const PLAN_DURATION_LABELS: Record<string, string> = {
   '1_week':   '1 Week',
   '1_month':  '1 Month',
   '3_months': '3 Months',

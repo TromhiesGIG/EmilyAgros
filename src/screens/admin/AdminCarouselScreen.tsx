@@ -1,6 +1,4 @@
 // src/screens/admin/AdminCarouselScreen.tsx
-// Manage all 3 carousel slots + upload announcements
-
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
@@ -15,28 +13,12 @@ import { X, Upload, ImageOff } from 'lucide-react-native';
 const GREEN = '#008102';
 const GRAY  = '#6B7280';
 
-interface CarouselSlot {
-  id: string;
-  slot_number: number;
-  slot_type: 'empty' | 'promotion' | 'announcement';
-  is_available: boolean;
-  expires_at: string | null;
-  product_id: string | null;
-  announcement_image_url: string | null;
-  announcement_title: string | null;
-  announcement_link: string | null;
-  product?: { title: string; images: string[] };
-  seller?: { full_name: string };
-}
-
 export const AdminCarouselScreen = () => {
-  const [slots, setSlots]           = useState<CarouselSlot[]>([]);
+  const [slots, setSlots]           = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [uploading, setUploading]   = useState(false);
-
-  // Announcement modal state
-  const [announcementModal, setAnnouncementModal] = useState<number | null>(null);
+  const [announcementModal, setAnnouncementModal] = useState<string | null>(null);
   const [annImage, setAnnImage]   = useState<string | null>(null);
   const [annTitle, setAnnTitle]   = useState('');
   const [annLink, setAnnLink]     = useState('');
@@ -46,18 +28,47 @@ export const AdminCarouselScreen = () => {
   const fetchSlots = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Step 1: fetch slots
+      const { data: slotsData, error } = await supabase
         .from('carousel_slots')
-        .select(`
-          *,
-          product:products(title, images),
-          seller:profiles(full_name)
-        `)
+        .select('*')
         .order('slot_number', { ascending: true });
 
-      if (!error) setSlots((data as any) ?? []);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); setRefreshing(false); }
+      if (error) throw error;
+      if (!slotsData) { setSlots([]); return; }
+
+      // Step 2: fetch related products and sellers separately
+      const productIds = slotsData.filter(s => s.product_id).map(s => s.product_id);
+      const sellerIds  = slotsData.filter(s => s.seller_id).map(s => s.seller_id);
+
+      const [productsRes, sellersRes] = await Promise.all([
+        productIds.length > 0
+          ? supabase.from('products').select('id, title, images').in('id', productIds)
+          : Promise.resolve({ data: [] }),
+        sellerIds.length > 0
+          ? supabase.from('profiles').select('id, full_name').in('id', sellerIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const productMap: Record<string, any> = {};
+      (productsRes.data ?? []).forEach((p: any) => { productMap[p.id] = p; });
+
+      const sellerMap: Record<string, any> = {};
+      (sellersRes.data ?? []).forEach((s: any) => { sellerMap[s.id] = s; });
+
+      const enriched = slotsData.map(slot => ({
+        ...slot,
+        product: slot.product_id ? productMap[slot.product_id] : null,
+        seller:  slot.seller_id  ? sellerMap[slot.seller_id]  : null,
+      }));
+
+      setSlots(enriched);
+    } catch (e) {
+      console.error('Fetch slots error:', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   const pickImage = async () => {
@@ -72,19 +83,19 @@ export const AdminCarouselScreen = () => {
     }
   };
 
-  const uploadAnnouncement = async (slotNumber: number) => {
+  const uploadAnnouncement = async () => {
+    if (!announcementModal) return;
     if (!annImage) {
-      Alert.alert('Image Required', 'Please select an image for the announcement.');
+      Alert.alert('Image Required', 'Please select an image.');
       return;
     }
 
     setUploading(true);
     try {
-      // Upload image to Supabase Storage
-      const filename  = `announcement_${slotNumber}_${Date.now()}.jpg`;
-      const response  = await fetch(annImage);
-      const blob      = await response.blob();
-      const arrayBuf  = await blob.arrayBuffer();
+      const filename = `announcement_${announcementModal}_${Date.now()}.jpg`;
+      const response = await fetch(annImage);
+      const blob     = await response.blob();
+      const arrayBuf = await blob.arrayBuffer();
 
       const { error: uploadError } = await supabase.storage
         .from('carousel-images')
@@ -96,30 +107,24 @@ export const AdminCarouselScreen = () => {
         .from('carousel-images')
         .getPublicUrl(filename);
 
-      const publicUrl = urlData.publicUrl;
-
-      // Update the carousel slot
-      const slot = slots.find(s => s.slot_number === slotNumber);
-      if (!slot) return;
-
       await supabase.from('carousel_slots').update({
         slot_type:              'announcement',
         is_available:           false,
-        announcement_image_url: publicUrl,
+        announcement_image_url: urlData.publicUrl,
         announcement_title:     annTitle || null,
         announcement_link:      annLink || null,
         promotion_id:           null,
         product_id:             null,
         seller_id:              null,
         expires_at:             null,
-      }).eq('id', slot.id);
+      }).eq('id', announcementModal);
 
       setAnnouncementModal(null);
       setAnnImage(null);
       setAnnTitle('');
       setAnnLink('');
       await fetchSlots();
-      Alert.alert('Published!', `Announcement is now live on Slot ${slotNumber}.`);
+      Alert.alert('Published!', 'Announcement is now live on the carousel.');
     } catch (e: any) {
       Alert.alert('Upload Failed', e.message ?? 'Something went wrong.');
     } finally {
@@ -127,25 +132,21 @@ export const AdminCarouselScreen = () => {
     }
   };
 
-  const clearSlot = async (slot: CarouselSlot) => {
+  const clearSlot = async (slot: any) => {
     Alert.alert(
       'Clear Slot',
-      `Are you sure you want to clear Slot ${slot.slot_number}? ${slot.slot_type === 'promotion' ? 'The active promotion will be cancelled.' : ''}`,
+      `Clear Slot ${slot.slot_number}?${slot.slot_type === 'promotion' ? ' The active promotion will be cancelled.' : ''}`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear',
-          style: 'destructive',
+          text: 'Clear', style: 'destructive',
           onPress: async () => {
             try {
-              // If it's a promotion, expire it
-              if (slot.slot_type === 'promotion' && slot.product_id) {
+              if (slot.slot_type === 'promotion' && slot.promotion_id) {
                 await supabase.from('promotions')
                   .update({ status: 'expired' })
-                  .eq('id', slot.id);
+                  .eq('id', slot.promotion_id);
               }
-
-              // Clear the slot
               await supabase.from('carousel_slots').update({
                 slot_type:              'empty',
                 is_available:           true,
@@ -157,7 +158,6 @@ export const AdminCarouselScreen = () => {
                 announcement_title:     null,
                 announcement_link:      null,
               }).eq('id', slot.id);
-
               await fetchSlots();
             } catch (e: any) {
               Alert.alert('Error', e.message);
@@ -168,38 +168,29 @@ export const AdminCarouselScreen = () => {
     );
   };
 
-  const SlotCard = ({ slot }: { slot: CarouselSlot }) => {
-    const isEmpty       = slot.slot_type === 'empty';
-    const isPromotion   = slot.slot_type === 'promotion';
+  const SlotCard = ({ slot }: { slot: any }) => {
+    const isEmpty        = slot.slot_type === 'empty';
+    const isPromotion    = slot.slot_type === 'promotion';
     const isAnnouncement = slot.slot_type === 'announcement';
-    const imageUri = isPromotion
+    const imageUri       = isPromotion
       ? slot.product?.images?.[0]
-      : isAnnouncement
-      ? slot.announcement_image_url
-      : null;
+      : isAnnouncement ? slot.announcement_image_url : null;
 
     return (
       <View style={styles.slotCard}>
         <View style={styles.slotHeader}>
           <Text style={styles.slotNumber}>Slot {slot.slot_number}</Text>
-          <View style={[
-            styles.slotBadge,
-            isEmpty       ? styles.badgeEmpty :
-            isPromotion   ? styles.badgePromo :
-            styles.badgeAnn
+          <View style={[styles.slotBadge,
+            isEmpty ? styles.badgeEmpty : isPromotion ? styles.badgePromo : styles.badgeAnn
           ]}>
-            <Text style={[
-              styles.slotBadgeText,
-              isEmpty       ? { color: GRAY } :
-              isPromotion   ? { color: GREEN } :
-              { color: '#1565C0' }
+            <Text style={[styles.slotBadgeText,
+              { color: isEmpty ? GRAY : isPromotion ? GREEN : '#1565C0' }
             ]}>
               {isEmpty ? 'Empty' : isPromotion ? 'Promoted Ad' : 'Announcement'}
             </Text>
           </View>
         </View>
 
-        {/* Preview image */}
         <View style={styles.previewWrap}>
           {imageUri
             ? <Image source={{ uri: imageUri }} style={styles.preview} resizeMode="cover" />
@@ -207,11 +198,10 @@ export const AdminCarouselScreen = () => {
           }
         </View>
 
-        {/* Content info */}
         {isPromotion && (
           <View style={styles.infoBox}>
-            <Text style={styles.infoTitle} numberOfLines={1}>{slot.product?.title}</Text>
-            <Text style={styles.infoSub}>By {slot.seller?.full_name}</Text>
+            <Text style={styles.infoTitle} numberOfLines={1}>{slot.product?.title ?? 'Unknown'}</Text>
+            <Text style={styles.infoSub}>By {slot.seller?.full_name ?? 'Unknown'}</Text>
             {slot.expires_at && (
               <Text style={styles.infoSub}>
                 Expires {new Date(slot.expires_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -229,11 +219,10 @@ export const AdminCarouselScreen = () => {
           </View>
         )}
 
-        {/* Actions */}
         <View style={styles.slotActions}>
           <TouchableOpacity
             style={styles.announcementBtn}
-            onPress={() => setAnnouncementModal(slot.slot_number)}
+            onPress={() => setAnnouncementModal(slot.id)}
           >
             <Upload size={15} color="#1565C0" />
             <Text style={styles.announcementBtnText}>Post Announcement</Text>
@@ -268,7 +257,6 @@ export const AdminCarouselScreen = () => {
         </ScrollView>
       )}
 
-      {/* Announcement upload modal */}
       <Modal visible={announcementModal !== null} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -278,9 +266,7 @@ export const AdminCarouselScreen = () => {
                 <X size={24} color="#111827" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalSub}>Slot {announcementModal}</Text>
 
-            {/* Image picker */}
             <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
               {annImage
                 ? <Image source={{ uri: annImage }} style={styles.pickedImage} resizeMode="cover" />
@@ -313,12 +299,12 @@ export const AdminCarouselScreen = () => {
 
             <TouchableOpacity
               style={[styles.publishBtn, uploading && { opacity: 0.6 }]}
-              onPress={() => announcementModal && uploadAnnouncement(announcementModal)}
+              onPress={uploadAnnouncement}
               disabled={uploading}
             >
               {uploading
                 ? <ActivityIndicator color="#FFFFFF" />
-                : <Text style={styles.publishBtnText}>Publish to Slot {announcementModal}</Text>}
+                : <Text style={styles.publishBtnText}>Publish to Carousel</Text>}
             </TouchableOpacity>
           </View>
         </View>
@@ -354,9 +340,8 @@ const styles = StyleSheet.create({
   clearBtnText:        { color: '#DC2626', fontWeight: '600', fontSize: 13 },
   modalOverlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent:        { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-  modalHeaderRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  modalHeaderRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   modalTitle:          { fontSize: 20, fontWeight: '700', color: '#111827' },
-  modalSub:            { fontSize: 13, color: GRAY, marginBottom: 16 },
   imagePicker:         { borderRadius: 12, overflow: 'hidden', marginBottom: 14, height: 160 },
   pickedImage:         { width: '100%', height: '100%' },
   imagePickerEmpty:    { width: '100%', height: '100%', backgroundColor: '#F9FAFB', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', borderStyle: 'dashed', borderRadius: 12 },

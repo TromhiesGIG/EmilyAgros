@@ -1,6 +1,4 @@
 // src/screens/admin/AdminPromotionsScreen.tsx
-// View all promotions across all sellers
-
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
@@ -43,18 +41,46 @@ export const AdminPromotionsScreen = () => {
   const fetchPromotions = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Step 1: fetch all promotions
+      const { data: promoData, error } = await supabase
         .from('promotions')
-        .select(`
-          *,
-          product:products(title, price),
-          seller:profiles(full_name, phone_number)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error) setPromotions(data ?? []);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); setRefreshing(false); }
+      if (error) throw error;
+      if (!promoData || promoData.length === 0) {
+        setPromotions([]);
+        return;
+      }
+
+      // Step 2: fetch related products and sellers separately
+      const productIds = [...new Set(promoData.map((p: any) => p.product_id))];
+      const sellerIds  = [...new Set(promoData.map((p: any) => p.seller_id))];
+
+      const [productsRes, sellersRes] = await Promise.all([
+        supabase.from('products').select('id, title, price').in('id', productIds),
+        supabase.from('profiles').select('id, full_name, phone_number').in('id', sellerIds),
+      ]);
+
+      const productMap: Record<string, any> = {};
+      (productsRes.data ?? []).forEach((p: any) => { productMap[p.id] = p; });
+
+      const sellerMap: Record<string, any> = {};
+      (sellersRes.data ?? []).forEach((s: any) => { sellerMap[s.id] = s; });
+
+      const enriched = promoData.map((p: any) => ({
+        ...p,
+        product: productMap[p.product_id] ?? null,
+        seller:  sellerMap[p.seller_id] ?? null,
+      }));
+
+      setPromotions(enriched);
+    } catch (e) {
+      console.error('Admin promotions fetch error:', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   const filtered = promotions.filter(p => {
@@ -63,6 +89,13 @@ export const AdminPromotionsScreen = () => {
     if (tab === 'pending') return p.status === 'pending';
     return ['expired', 'rejected', 'cancelled'].includes(p.status);
   });
+
+  const counts = {
+    all:     promotions.length,
+    active:  promotions.filter(p => p.status === 'active').length,
+    pending: promotions.filter(p => p.status === 'pending').length,
+    expired: promotions.filter(p => ['expired','rejected','cancelled'].includes(p.status)).length,
+  };
 
   const formatDate = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
@@ -74,7 +107,6 @@ export const AdminPromotionsScreen = () => {
         <Text style={styles.headerSub}>{promotions.length} total</Text>
       </View>
 
-      {/* Tabs */}
       <View style={styles.tabs}>
         {(['all', 'active', 'pending', 'expired'] as FilterTab[]).map(t => (
           <TouchableOpacity
@@ -83,7 +115,7 @@ export const AdminPromotionsScreen = () => {
             onPress={() => setTab(t)}
           >
             <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t.charAt(0).toUpperCase() + t.slice(1)} ({counts[t]})
             </Text>
           </TouchableOpacity>
         ))}
@@ -113,11 +145,13 @@ export const AdminPromotionsScreen = () => {
                     <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
                   </View>
                 </View>
-                <Text style={styles.productTitle} numberOfLines={1}>{item.product?.title}</Text>
-                <Text style={styles.sellerName}>{item.seller?.full_name}</Text>
+                <Text style={styles.productTitle} numberOfLines={1}>
+                  {item.product?.title ?? 'Unknown product'}
+                </Text>
+                <Text style={styles.sellerName}>{item.seller?.full_name ?? 'Unknown seller'}</Text>
                 <View style={styles.cardBottom}>
                   <Text style={styles.metaText}>
-                    {DURATION_LABELS[item.plan_duration]} · ₦{Number(item.amount_paid).toLocaleString()}
+                    {DURATION_LABELS[item.plan_duration] ?? item.plan_duration} · ₦{Number(item.amount_paid).toLocaleString()}
                   </Text>
                   <Text style={styles.metaText}>Expires {formatDate(item.expires_at)}</Text>
                 </View>
@@ -131,24 +165,24 @@ export const AdminPromotionsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  safe:         { flex: 1, backgroundColor: '#FFFFFF' },
-  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  headerTitle:  { fontSize: 18, fontWeight: '700', color: '#111827' },
-  headerSub:    { fontSize: 13, color: GRAY },
-  tabs:         { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
-  tab:          { flex: 1, paddingVertical: 12, alignItems: 'center' },
-  tabActive:    { borderBottomWidth: 3, borderBottomColor: GREEN },
-  tabText:      { fontSize: 13, color: GRAY, fontWeight: '500' },
-  tabTextActive:{ color: GREEN, fontWeight: '700' },
-  card:         { borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', padding: 14, marginBottom: 10 },
-  cardTop:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  typeText:     { fontSize: 14, fontWeight: '700', color: '#111827' },
-  statusBadge:  { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  statusText:   { fontSize: 11, fontWeight: '700' },
-  productTitle: { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 2 },
-  sellerName:   { fontSize: 13, color: GRAY, marginBottom: 8 },
-  cardBottom:   { flexDirection: 'row', justifyContent: 'space-between' },
-  metaText:     { fontSize: 12, color: GRAY },
-  empty:        { alignItems: 'center', marginTop: 60 },
-  emptyText:    { fontSize: 15, color: GRAY },
+  safe:          { flex: 1, backgroundColor: '#FFFFFF' },
+  header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  headerTitle:   { fontSize: 18, fontWeight: '700', color: '#111827' },
+  headerSub:     { fontSize: 13, color: GRAY },
+  tabs:          { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  tab:           { flex: 1, paddingVertical: 11, alignItems: 'center' },
+  tabActive:     { borderBottomWidth: 3, borderBottomColor: GREEN },
+  tabText:       { fontSize: 11, color: GRAY, fontWeight: '500' },
+  tabTextActive: { color: GREEN, fontWeight: '700' },
+  card:          { borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', padding: 14, marginBottom: 10 },
+  cardTop:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  typeText:      { fontSize: 14, fontWeight: '700', color: '#111827' },
+  statusBadge:   { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+  statusText:    { fontSize: 11, fontWeight: '700' },
+  productTitle:  { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 2 },
+  sellerName:    { fontSize: 13, color: GRAY, marginBottom: 8 },
+  cardBottom:    { flexDirection: 'row', justifyContent: 'space-between' },
+  metaText:      { fontSize: 12, color: GRAY },
+  empty:         { alignItems: 'center', marginTop: 60 },
+  emptyText:     { fontSize: 15, color: GRAY },
 });

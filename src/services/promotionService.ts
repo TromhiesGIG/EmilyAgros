@@ -12,15 +12,12 @@ import {
   PLAN_DURATION_DAYS,
 } from '../types/promotions';
 
-// ── Carousel Slots ───────────────────────────────────────────────────────────
-
-/** Fetch all 3 carousel slots with their availability status */
+/** Fetch all 3 carousel slots */
 export async function getCarouselSlots(): Promise<CarouselSlot[]> {
   const { data, error } = await supabase
     .from('carousel_slots')
     .select('*')
     .order('slot_number', { ascending: true });
-
   if (error) throw error;
   return data as CarouselSlot[];
 }
@@ -32,14 +29,11 @@ export async function isCarouselAvailable(): Promise<boolean> {
     .select('id')
     .eq('is_available', true)
     .limit(1);
-
   if (error) throw error;
   return (data?.length ?? 0) > 0;
 }
 
-// ── Seller's Ads ─────────────────────────────────────────────────────────────
-
-/** Fetch seller's active ads for the AdSelectionScreen */
+/** Fetch seller's active ads for AdSelectionScreen */
 export async function getSellerActiveAds(sellerId: string) {
   const { data, error } = await supabase
     .from('products')
@@ -47,12 +41,9 @@ export async function getSellerActiveAds(sellerId: string) {
     .eq('user_id', sellerId)
     .eq('status', 'Active')
     .order('created_at', { ascending: false });
-
   if (error) throw error;
   return data ?? [];
 }
-
-// ── Create Promotion ─────────────────────────────────────────────────────────
 
 interface CreatePromotionParams {
   sellerId: string;
@@ -65,22 +56,10 @@ interface CreatePromotionParams {
   flutterwaveTxId?: string;
 }
 
-/**
- * Creates a promotion record. 
- * - Trending / Search Ads → status = 'active', sets starts_at + expires_at immediately
- * - Carousel → status = 'pending', also inserts into admin_queue
- * - Bundle → status depends on whether it contains carousel
- */
 export async function createPromotion(params: CreatePromotionParams): Promise<Promotion> {
   const {
-    sellerId,
-    productId,
-    promotionType,
-    planDuration,
-    paymentMethod,
-    amountPaid,
-    bundleName,
-    flutterwaveTxId,
+    sellerId, productId, promotionType, planDuration,
+    paymentMethod, amountPaid, bundleName, flutterwaveTxId,
   } = params;
 
   const needsApproval = promotionType === 'carousel' ||
@@ -90,23 +69,21 @@ export async function createPromotion(params: CreatePromotionParams): Promise<Pr
   const expiresAt = new Date(now);
   expiresAt.setDate(expiresAt.getDate() + PLAN_DURATION_DAYS[planDuration]);
 
-  const promotionRecord = {
-    seller_id:         sellerId,
-    product_id:        productId,
-    promotion_type:    promotionType,
-    bundle_name:       bundleName ?? null,
-    plan_duration:     planDuration,
-    status:            needsApproval ? 'pending' : 'active',
-    payment_method:    paymentMethod,
-    amount_paid:       amountPaid,
-    flutterwave_tx_id: flutterwaveTxId ?? null,
-    starts_at:         needsApproval ? null : now.toISOString(),
-    expires_at:        needsApproval ? null : expiresAt.toISOString(),
-  };
-
   const { data, error } = await supabase
     .from('promotions')
-    .insert(promotionRecord)
+    .insert({
+      seller_id:         sellerId,
+      product_id:        productId,
+      promotion_type:    promotionType,
+      bundle_name:       bundleName ?? null,
+      plan_duration:     planDuration,
+      status:            needsApproval ? 'pending' : 'active',
+      payment_method:    paymentMethod,
+      amount_paid:       amountPaid,
+      flutterwave_tx_id: flutterwaveTxId ?? null,
+      starts_at:         needsApproval ? null : now.toISOString(),
+      expires_at:        needsApproval ? null : expiresAt.toISOString(),
+    })
     .select()
     .single();
 
@@ -114,7 +91,6 @@ export async function createPromotion(params: CreatePromotionParams): Promise<Pr
 
   const promotion = data as Promotion;
 
-  // If carousel / premium bundle → add to admin_queue
   if (needsApproval) {
     const { error: queueError } = await supabase
       .from('admin_queue')
@@ -124,26 +100,32 @@ export async function createPromotion(params: CreatePromotionParams): Promise<Pr
         product_id:   productId,
         status:       'pending',
       });
-
     if (queueError) throw queueError;
   }
 
   return promotion;
 }
 
-// ── Wallet Payment ───────────────────────────────────────────────────────────
-
-/**
- * Deducts from wallet and creates the promotion in one flow.
- * Returns the created promotion on success.
- * Throws if balance is insufficient.
- */
 export async function payWithWalletAndPromote(
   params: CreatePromotionParams
 ): Promise<Promotion> {
-  const { sellerId, amountPaid } = params;
+  const { sellerId, productId, promotionType, amountPaid } = params;
 
-  // 1. Check wallet balance from profiles
+  // 1. Check for existing active promotion for same ad + type
+  const { data: existing } = await supabase
+    .from('promotions')
+    .select('id')
+    .eq('seller_id', sellerId)
+    .eq('product_id', productId)
+    .eq('promotion_type', promotionType)
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (existing) {
+    throw new Error('ALREADY_ACTIVE');
+  }
+
+  // 2. Check wallet balance
   const { data: profile, error: walletError } = await supabase
     .from('profiles')
     .select('wallet_balance')
@@ -155,7 +137,7 @@ export async function payWithWalletAndPromote(
     throw new Error('INSUFFICIENT_BALANCE');
   }
 
-  // 2. Deduct from profiles.wallet_balance
+  // 3. Deduct from wallet
   const { error: deductError } = await supabase
     .from('profiles')
     .update({ wallet_balance: profile.wallet_balance - amountPaid })
@@ -163,39 +145,33 @@ export async function payWithWalletAndPromote(
 
   if (deductError) throw deductError;
 
-  // 3. Create promotion
+  // 4. Create promotion
   return createPromotion({ ...params, paymentMethod: 'wallet' });
 }
 
-// ── Seller Promotions ────────────────────────────────────────────────────────
-
-/** Fetch seller's promotions from the summary view (includes view_count) */
+/** Fetch seller's promotions with view counts */
 export async function getMyPromotions(sellerId: string): Promise<SellerPromotionSummary[]> {
   const { data, error } = await supabase
     .from('seller_promotions_summary')
     .select('*')
     .eq('seller_id', sellerId)
     .order('created_at', { ascending: false });
-
   if (error) throw error;
   return (data ?? []) as SellerPromotionSummary[];
 }
 
-/** Fetch wallet balance from profiles.wallet_balance */
+/** Fetch wallet balance */
 export async function getWalletBalance(userId: string): Promise<number> {
   const { data, error } = await supabase
     .from('profiles')
     .select('wallet_balance')
     .eq('id', userId)
     .single();
-
   if (error) throw error;
   return data?.wallet_balance ?? 0;
 }
 
-// ── View Tracking ────────────────────────────────────────────────────────────
-
-/** Record a view for a promoted product. Call when a promoted ad appears on screen. */
+/** Record a promotion view — fire and forget */
 export async function recordPromotionView(
   promotionId: string,
   productId: string,
@@ -210,5 +186,4 @@ export async function recordPromotionView(
     viewer_id:    viewerId ?? null,
     view_source:  viewSource,
   });
-  // Fire-and-forget — don't block UI on view recording
 }

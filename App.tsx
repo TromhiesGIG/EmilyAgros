@@ -57,6 +57,8 @@ const Navigation = () => {
   const { user, isAdmin, loading } = useAuth();
   usePresence();
 
+  // Show spinner OUTSIDE NavigationContainer while auth loads
+  // This ensures NavigationContainer only mounts ONCE with the correct initialRouteName
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -82,21 +84,24 @@ const Navigation = () => {
     },
   };
 
-  // Decide where the user starts based on auth state
+  // By the time we get here, loading is false and user/isAdmin are definitive
+  // initialRouteName is set correctly on the very first and only mount
   const initialRoute = user
     ? isAdmin ? 'AdminApp' : 'MainApp'
     : 'Splash';
 
   return (
-    <NavigationContainer linking={linking}>
+    // Key prop forces NavigationContainer to fully remount if auth state changes
+    // e.g. after sign out — this guarantees initialRouteName is always respected
+    <NavigationContainer key={user?.id ?? 'guest'} linking={linking}>
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{ headerShown: false }}
       >
-        {/* ── Auth Screens — always registered ── */}
-        <Stack.Screen name="Splash"               component={SplashScreen} />
-        <Stack.Screen name="Onboarding"           component={OnboardingScreen} />
-        <Stack.Screen name="AuthWelcome"          component={AuthWelcomeScreen} />
+        {/* ── Auth Screens ── */}
+        <Stack.Screen name="Splash"             component={SplashScreen} />
+        <Stack.Screen name="Onboarding"         component={OnboardingScreen} />
+        <Stack.Screen name="AuthWelcome"        component={AuthWelcomeScreen} />
         <Stack.Screen
           name="CreateAccountWelcome"
           component={CreateAccountWelcomeScreen}
@@ -120,7 +125,7 @@ const Navigation = () => {
         <Stack.Screen name="ResetLinkSent"    component={ResetLinkSentScreen} />
         <Stack.Screen name="UpdatePassword"   component={UpdatePasswordScreen} />
 
-        {/* ── App Screens — always registered ── */}
+        {/* ── App Screens ── */}
         <Stack.Screen name="MainApp"  component={MainTabNavigator} />
         <Stack.Screen name="AdminApp" component={AdminNavigator} />
       </Stack.Navigator>

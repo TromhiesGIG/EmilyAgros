@@ -1,6 +1,4 @@
 // src/screens/admin/AdminQueueScreen.tsx
-// Carousel approval queue
-
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
@@ -14,36 +12,14 @@ import { supabase } from '../../services/supabase';
 const GREEN = '#008102';
 const GRAY  = '#6B7280';
 
-interface QueueItem {
-  id: string;
-  promotion_id: string;
-  seller_id: string;
-  product_id: string;
-  status: string;
-  created_at: string;
-  promotion: {
-    plan_duration: string;
-    amount_paid: number;
-  };
-  product: {
-    title: string;
-    images: string[];
-    price: number;
-  };
-  seller: {
-    full_name: string;
-    phone_number: string;
-  };
-}
-
 const DURATION_LABELS: Record<string, string> = {
   '1_week': '1 Week', '1_month': '1 Month', '3_months': '3 Months',
 };
 
 export const AdminQueueScreen = () => {
-  const [items, setItems]           = useState<QueueItem[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [items, setItems]             = useState<any[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [refreshing, setRefreshing]   = useState(false);
   const [rejectModal, setRejectModal] = useState<string | null>(null);
   const [rejectNote, setRejectNote]   = useState('');
   const [processing, setProcessing]   = useState(false);
@@ -53,40 +29,72 @@ export const AdminQueueScreen = () => {
   const fetchQueue = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Step 1: fetch pending queue entries
+      const { data: queueData, error } = await supabase
         .from('admin_queue')
-        .select(`
-          *,
-          promotion:promotions(plan_duration, amount_paid),
-          product:products(title, images, price),
-          seller:profiles(full_name, phone_number)
-        `)
+        .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: true });
 
-      if (!error) setItems((data as any) ?? []);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); setRefreshing(false); }
+      if (error) throw error;
+      if (!queueData || queueData.length === 0) {
+        setItems([]);
+        return;
+      }
+
+      // Step 2: fetch related data separately
+      const promotionIds = queueData.map((q: any) => q.promotion_id);
+      const productIds   = queueData.map((q: any) => q.product_id);
+      const sellerIds    = queueData.map((q: any) => q.seller_id);
+
+      const [promotionsRes, productsRes, sellersRes] = await Promise.all([
+        supabase.from('promotions').select('id, plan_duration, amount_paid').in('id', promotionIds),
+        supabase.from('products').select('id, title, images, price').in('id', productIds),
+        supabase.from('profiles').select('id, full_name, phone_number').in('id', sellerIds),
+      ]);
+
+      // Step 3: merge data
+      const promotionMap: Record<string, any> = {};
+      (promotionsRes.data ?? []).forEach((p: any) => { promotionMap[p.id] = p; });
+
+      const productMap: Record<string, any> = {};
+      (productsRes.data ?? []).forEach((p: any) => { productMap[p.id] = p; });
+
+      const sellerMap: Record<string, any> = {};
+      (sellersRes.data ?? []).forEach((s: any) => { sellerMap[s.id] = s; });
+
+      const enriched = queueData.map((q: any) => ({
+        ...q,
+        promotion: promotionMap[q.promotion_id] ?? null,
+        product:   productMap[q.product_id] ?? null,
+        seller:    sellerMap[q.seller_id] ?? null,
+      }));
+
+      setItems(enriched);
+    } catch (e) {
+      console.error('Queue fetch error:', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const handleApprove = async (item: QueueItem) => {
+  const handleApprove = async (item: any) => {
     Alert.alert(
       'Approve Carousel',
-      `Approve ${item.seller?.full_name}'s carousel submission for ${DURATION_LABELS[item.promotion?.plan_duration]}?`,
+      `Approve ${item.seller?.full_name ?? 'this seller'}'s carousel submission for ${DURATION_LABELS[item.promotion?.plan_duration] ?? item.promotion?.plan_duration}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Approve',
-          style: 'default',
           onPress: async () => {
             setProcessing(true);
             try {
-              // 1. Find an available carousel slot
+              // Find available slot
               const { data: slots } = await supabase
                 .from('carousel_slots')
                 .select('*')
                 .eq('is_available', true)
-                .eq('slot_type', 'empty')
                 .order('slot_number', { ascending: true })
                 .limit(1);
 
@@ -104,7 +112,7 @@ export const AdminQueueScreen = () => {
               const expiresAt = new Date(now);
               expiresAt.setDate(expiresAt.getDate() + (durationDays[item.promotion?.plan_duration] ?? 30));
 
-              // 2. Assign slot to this promotion
+              // Assign slot
               await supabase.from('carousel_slots').update({
                 slot_type:    'promotion',
                 promotion_id: item.promotion_id,
@@ -114,14 +122,14 @@ export const AdminQueueScreen = () => {
                 expires_at:   expiresAt.toISOString(),
               }).eq('id', slot.id);
 
-              // 3. Activate the promotion
+              // Activate promotion
               await supabase.from('promotions').update({
-                status:    'active',
-                starts_at: now.toISOString(),
+                status:     'active',
+                starts_at:  now.toISOString(),
                 expires_at: expiresAt.toISOString(),
               }).eq('id', item.promotion_id);
 
-              // 4. Update queue entry
+              // Update queue
               await supabase.from('admin_queue').update({
                 status:      'approved',
                 reviewed_at: now.toISOString(),
@@ -144,15 +152,14 @@ export const AdminQueueScreen = () => {
     if (!rejectModal) return;
     setProcessing(true);
     try {
-      // Update queue entry
+      const item = items.find(i => i.id === rejectModal);
+
       await supabase.from('admin_queue').update({
         status:      'rejected',
         admin_note:  rejectNote || 'Does not meet carousel guidelines.',
         reviewed_at: new Date().toISOString(),
       }).eq('id', rejectModal);
 
-      // Update promotion status
-      const item = items.find(i => i.id === rejectModal);
       if (item) {
         await supabase.from('promotions')
           .update({ status: 'rejected' })
@@ -162,7 +169,7 @@ export const AdminQueueScreen = () => {
       setRejectModal(null);
       setRejectNote('');
       await fetchQueue();
-      Alert.alert('Rejected', 'The submission has been rejected and the seller will be notified.');
+      Alert.alert('Rejected', 'The submission has been rejected.');
     } catch (e: any) {
       Alert.alert('Error', e.message ?? 'Something went wrong.');
     } finally {
@@ -170,11 +177,10 @@ export const AdminQueueScreen = () => {
     }
   };
 
-  const renderItem = ({ item }: { item: QueueItem }) => {
+  const renderItem = ({ item }: { item: any }) => {
     const imageUri = item.product?.images?.[0] ?? null;
     return (
       <View style={styles.card}>
-        {/* Product image + info */}
         <View style={styles.cardTop}>
           <View style={styles.thumbWrap}>
             {imageUri
@@ -183,11 +189,11 @@ export const AdminQueueScreen = () => {
             }
           </View>
           <View style={styles.cardInfo}>
-            <Text style={styles.productTitle} numberOfLines={2}>{item.product?.title}</Text>
-            <Text style={styles.productPrice}>₦{Number(item.product?.price).toLocaleString()}</Text>
-            <Text style={styles.sellerName}>{item.seller?.full_name}</Text>
+            <Text style={styles.productTitle} numberOfLines={2}>{item.product?.title ?? 'Unknown product'}</Text>
+            <Text style={styles.productPrice}>₦{Number(item.product?.price ?? 0).toLocaleString()}</Text>
+            <Text style={styles.sellerName}>{item.seller?.full_name ?? 'Unknown seller'}</Text>
             <Text style={styles.planText}>
-              {DURATION_LABELS[item.promotion?.plan_duration]} · ₦{Number(item.promotion?.amount_paid).toLocaleString()}
+              {DURATION_LABELS[item.promotion?.plan_duration] ?? item.promotion?.plan_duration} · ₦{Number(item.promotion?.amount_paid ?? 0).toLocaleString()}
             </Text>
           </View>
         </View>
@@ -196,7 +202,6 @@ export const AdminQueueScreen = () => {
           Submitted {new Date(item.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
         </Text>
 
-        {/* Actions */}
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.rejectBtn}
@@ -248,7 +253,6 @@ export const AdminQueueScreen = () => {
         />
       )}
 
-      {/* Reject modal */}
       <Modal visible={!!rejectModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>

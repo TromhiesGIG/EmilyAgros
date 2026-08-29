@@ -44,8 +44,7 @@ export const HomeScreen = ({ navigation }: any) => {
         })));
       }
 
-      // ── Trending: promoted ads first, then recent ads ──────────────────────
-      // Step 1: get active trending promotions
+      // ── Trending: ONLY show ads with active paid promotions ──────────────
       const { data: trendingPromos } = await supabase
         .from('promotions')
         .select('product_id')
@@ -55,30 +54,20 @@ export const HomeScreen = ({ navigation }: any) => {
 
       const promotedIds = (trendingPromos ?? []).map((p: any) => p.product_id);
 
-      // Step 2: fetch promoted products first
-      let promotedAds: any[] = [];
+      let trendingProducts: any[] = [];
       if (promotedIds.length > 0) {
         const { data: promoProducts } = await supabase
           .from('products')
           .select('*')
           .in('id', promotedIds)
           .eq('status', 'Active');
-        promotedAds = promoProducts ?? [];
+        trendingProducts = (promoProducts ?? []).map((ad: any) => ({
+          ...ad,
+          isPromoted: true,
+        }));
       }
 
-      // Step 3: fetch recent ads (excluding already promoted ones)
-      const { data: recentAds } = await supabase
-        .from('products')
-        .select('*')
-        .eq('status', 'Active')
-        .not('id', 'in', promotedIds.length > 0 ? `(${promotedIds.join(',')})` : '(null)')
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      // Step 4: combine — promoted ads appear first with a badge
-      const promotedWithBadge = promotedAds.map((ad: any) => ({ ...ad, isPromoted: true }));
-      const combined = [...promotedWithBadge, ...(recentAds ?? [])];
-      setTrendingAds(combined);
+      setTrendingAds(trendingProducts);
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -209,13 +198,7 @@ export const HomeScreen = ({ navigation }: any) => {
             <ActivityIndicator color="#008102" style={{ marginVertical: 20 }} />
           ) : trendingAds.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No ads yet. Be the first to post!</Text>
-              <TouchableOpacity
-                style={styles.postAdBtn}
-                onPress={() => navigation.navigate('SellTab')}
-              >
-                <Text style={styles.postAdText}>Post an Ad</Text>
-              </TouchableOpacity>
+              <Text style={styles.emptyText}>No promoted ads yet.</Text>
             </View>
           ) : (
             <View style={viewMode === 'grid' ? styles.trendingGrid : styles.trendingList}>

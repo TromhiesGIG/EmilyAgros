@@ -119,6 +119,22 @@ export type RootTabParamList = {
   PromotionsTab: undefined;
 };
 
+export type SellStackParamList = {
+  CategorySelection: {
+    currentCategory?: Category;
+  };
+  SubcategorySelection: {
+    category: Category;
+    currentSubcategory?: SubCategory;
+  };
+  PostNewAd: {
+    selectedCategory?: Category;
+    selectedSubcategory?: SubCategory;
+    category?: Category;
+    subcategory?: SubCategory;
+  };
+};
+
 export interface Category {
   id: number;
   name: string;
