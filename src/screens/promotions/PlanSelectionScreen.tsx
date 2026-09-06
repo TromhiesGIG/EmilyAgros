@@ -1,13 +1,8 @@
 // src/screens/promotions/PlanSelectionScreen.tsx
-// Step 3 of 5 — Choose plan duration
-
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react-native';
-import { PromotionsStackParamList } from '../../navigation/types';
 import {
   PlanDuration,
   PROMOTION_PRICES,
@@ -15,34 +10,32 @@ import {
   BUNDLE_DETAILS,
   PLAN_DURATION_LABELS,
   PLAN_DURATION_DAYS,
+  BundleName,
 } from '../../types/promotions';
-
-type Props = {
-  navigation: NativeStackNavigationProp<PromotionsStackParamList, 'PlanSelection'>;
-  route: RouteProp<PromotionsStackParamList, 'PlanSelection'>;
-};
 
 const GREEN = '#008102';
 const GRAY  = '#6B7280';
 const DURATIONS: PlanDuration[] = ['1_week', '1_month', '3_months'];
 
-export const PlanSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
+export const PlanSelectionScreen: React.FC<any> = ({ navigation, route }) => {
+  console.log('PlanSelection params:', JSON.stringify(route.params)); // ADD THIS
   const { promotionType, bundleName, productId, productTitle } = route.params;
   const [selectedDuration, setSelectedDuration] = useState<PlanDuration>('1_month');
 
   const isBundle   = promotionType === 'bundle' && !!bundleName;
-  const bundleInfo = isBundle && bundleName ? BUNDLE_DETAILS[bundleName] : null;
-  const effectiveDuration: PlanDuration = isBundle ? '1_month' : selectedDuration;
+  const bundleInfo = isBundle && bundleName ? BUNDLE_DETAILS[bundleName as BundleName] : null;
+  const bundlePrice = isBundle && bundleName ? BUNDLE_PRICES[bundleName as BundleName] : 0;
 
   const getPrice = (duration: PlanDuration): number => {
-    if (isBundle && bundleName) return BUNDLE_PRICES[bundleName];
+    if (isBundle) return bundlePrice;
     const typePrice = PROMOTION_PRICES[promotionType];
     return typePrice ? typePrice[duration] : 0;
   };
 
+  const effectiveDuration: PlanDuration = isBundle ? '1_month' : selectedDuration;
   const totalPrice = getPrice(effectiveDuration);
 
-  const promotionTypeLabel: Record<string, string> = {
+  const promotionLabel: Record<string, string> = {
     carousel:  'Carousel',
     trending:  'Trending',
     search_ad: 'Search Ads',
@@ -71,11 +64,12 @@ export const PlanSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Selected ad preview */}
+
+        {/* Ad preview */}
         <View style={styles.adPreview}>
           <Text style={styles.adPreviewLabel}>Promoting</Text>
           <Text style={styles.adPreviewTitle} numberOfLines={1}>{productTitle}</Text>
-          <Text style={styles.adPreviewType}>{promotionTypeLabel[promotionType]}</Text>
+          <Text style={styles.adPreviewType}>{promotionLabel[promotionType]}</Text>
         </View>
 
         {/* Bundle includes */}
@@ -93,11 +87,13 @@ export const PlanSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
 
         <Text style={styles.sectionLabel}>Duration</Text>
 
-        {/* Duration options — individual promotions */}
+        {/* Individual promotion durations */}
         {!isBundle && DURATIONS.map((d: PlanDuration) => {
           const price    = getPrice(d);
           const selected = selectedDuration === d;
-          const perDay   = Math.round(price / PLAN_DURATION_DAYS[d]);
+          const days     = PLAN_DURATION_DAYS[d];
+          const perDay   = days > 0 ? Math.round(price / days) : 0;
+
           return (
             <TouchableOpacity
               key={d}
@@ -121,7 +117,7 @@ export const PlanSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
           );
         })}
 
-        {/* Fixed bundle duration */}
+        {/* Bundle fixed duration */}
         {isBundle && (
           <View style={[styles.durationCard, styles.durationCardSelected]}>
             <View style={styles.durationLeft}>
@@ -129,22 +125,26 @@ export const PlanSelectionScreen: React.FC<Props> = ({ navigation, route }) => {
               <Text style={styles.durationPerDay}>All components active for 30 days</Text>
             </View>
             <View style={styles.durationRight}>
-              <Text style={[styles.durationPrice, { color: GREEN }]}>₦{totalPrice.toLocaleString()}</Text>
+              <Text style={[styles.durationPrice, { color: GREEN }]}>
+                ₦{totalPrice.toLocaleString()}
+              </Text>
               <CheckCircle2 size={18} color={GREEN} style={{ marginLeft: 8 }} />
             </View>
           </View>
         )}
 
+        {/* Info box */}
         <View style={styles.infoBox}>
           {(promotionType === 'carousel' || (isBundle && bundleInfo?.hasCarousel))
-            ? <Text style={styles.infoText}>⏳ Carousel submissions are reviewed by our team within 24 hours before going live.</Text>
-            : <Text style={styles.infoText}>⚡ Your ad activates immediately after payment.</Text>
+            ? <Text style={styles.infoText}>⏳ Carousel submissions are reviewed within 24 hours before going live.</Text>
+            : <Text style={styles.infoText}>⚡ Your promotion activates immediately after payment.</Text>
           }
         </View>
 
         <View style={{ height: 30 }} />
       </ScrollView>
 
+      {/* Footer */}
       <View style={styles.footer}>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Total</Text>

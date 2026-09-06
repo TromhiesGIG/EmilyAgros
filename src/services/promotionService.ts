@@ -12,7 +12,7 @@ import {
   PLAN_DURATION_DAYS,
 } from '../types/promotions';
 
-/** Fetch all 3 carousel slots */
+/** Fetch all carousel slots */
 export async function getCarouselSlots(): Promise<CarouselSlot[]> {
   const { data, error } = await supabase
     .from('carousel_slots')
@@ -22,15 +22,35 @@ export async function getCarouselSlots(): Promise<CarouselSlot[]> {
   return data as CarouselSlot[];
 }
 
-/** Returns true if at least one carousel slot is available */
+/** Returns true if at least one STANDALONE carousel slot is available */
 export async function isCarouselAvailable(): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('carousel_slots')
-    .select('id')
-    .eq('is_available', true)
-    .limit(1);
-  if (error) throw error;
-  return (data?.length ?? 0) > 0;
+  const { data, error } = await supabase.rpc('is_standalone_carousel_available');
+  if (error) {
+    // Fallback to direct query if RPC fails
+    const { data: slots } = await supabase
+      .from('carousel_slots')
+      .select('id')
+      .eq('slot_purpose', 'standalone')
+      .eq('is_available', true)
+      .limit(1);
+    return (slots?.length ?? 0) > 0;
+  }
+  return data === true;
+}
+
+/** Returns true if at least one BUNDLE carousel slot is available */
+export async function isBundleCarouselAvailable(): Promise<boolean> {
+  const { data, error } = await supabase.rpc('is_bundle_carousel_available');
+  if (error) {
+    const { data: slots } = await supabase
+      .from('carousel_slots')
+      .select('id')
+      .eq('slot_purpose', 'bundle')
+      .eq('is_available', true)
+      .limit(1);
+    return (slots?.length ?? 0) > 0;
+  }
+  return data === true;
 }
 
 /** Fetch seller's active ads for AdSelectionScreen */
@@ -43,6 +63,31 @@ export async function getSellerActiveAds(sellerId: string) {
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data ?? [];
+}
+
+/** Join the waitlist for a carousel-dependent promotion */
+export async function joinWaitlist(
+  sellerId: string,
+  promotionType: 'carousel' | 'bundle',
+  bundleName?: string
+): Promise<void> {
+  // Check if already on waitlist
+  const { data: existing } = await supabase
+    .from('promotion_waitlist')
+    .select('id')
+    .eq('seller_id', sellerId)
+    .eq('bundle_name', bundleName ?? null)
+    .eq('status', 'waiting')
+    .maybeSingle();
+
+  if (existing) return; // Already on waitlist
+
+  await supabase.from('promotion_waitlist').insert({
+    seller_id:      sellerId,
+    promotion_type: promotionType,
+    bundle_name:    bundleName ?? null,
+    status:         'waiting',
+  });
 }
 
 interface CreatePromotionParams {
@@ -63,7 +108,7 @@ export async function createPromotion(params: CreatePromotionParams): Promise<Pr
   } = params;
 
   const needsApproval = promotionType === 'carousel' ||
-    (promotionType === 'bundle' && (bundleName === 'agri_pro' || bundleName === 'market_leader'));
+    (promotionType === 'bundle' && (bundleName === 'agri_pro' || bundleName === 'market_leader' || bundleName === 'grower'));
 
   const now = new Date();
   const expiresAt = new Date(now);
@@ -88,19 +133,15 @@ export async function createPromotion(params: CreatePromotionParams): Promise<Pr
     .single();
 
   if (error) throw error;
-
   const promotion = data as Promotion;
 
   if (needsApproval) {
-    const { error: queueError } = await supabase
-      .from('admin_queue')
-      .insert({
-        promotion_id: promotion.id,
-        seller_id:    sellerId,
-        product_id:   productId,
-        status:       'pending',
-      });
-    if (queueError) throw queueError;
+    await supabase.from('admin_queue').insert({
+      promotion_id: promotion.id,
+      seller_id:    sellerId,
+      product_id:   productId,
+      status:       'pending',
+    });
   }
 
   return promotion;
@@ -121,9 +162,7 @@ export async function payWithWalletAndPromote(
     .eq('status', 'active')
     .maybeSingle();
 
-  if (existing) {
-    throw new Error('ALREADY_ACTIVE');
-  }
+  if (existing) throw new Error('ALREADY_ACTIVE');
 
   // 2. Check wallet balance
   const { data: profile, error: walletError } = await supabase
@@ -137,7 +176,7 @@ export async function payWithWalletAndPromote(
     throw new Error('INSUFFICIENT_BALANCE');
   }
 
-  // 3. Deduct from wallet
+  // 3. Deduct wallet
   const { error: deductError } = await supabase
     .from('profiles')
     .update({ wallet_balance: profile.wallet_balance - amountPaid })
@@ -171,7 +210,7 @@ export async function getWalletBalance(userId: string): Promise<number> {
   return data?.wallet_balance ?? 0;
 }
 
-/** Record a promotion view — fire and forget */
+/** Record a promotion view */
 export async function recordPromotionView(
   promotionId: string,
   productId: string,

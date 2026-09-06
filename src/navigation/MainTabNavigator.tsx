@@ -4,10 +4,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, Search, PlusCircle, MessageSquare, MoreHorizontal } from 'lucide-react-native';
 import { MainTabParamList } from './types';
 import { HomeStackNavigator }     from './HomeStackNavigator';
+import { SearchStackNavigator }   from './SearchStackNavigator';
 import { SellStackNavigator }     from './SellStackNavigator';
 import { ProfileStackNavigator }  from './ProfileStackNavigator';
 import { MessagesStackNavigator } from './MessagesStackNavigator';
-import { PlaceholderScreen }      from '../screens/main/PlaceholderScreen';
 import { useAuth }                from '../providers/AuthProvider';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -49,13 +49,12 @@ export const MainTabNavigator: React.FC = ({ navigation }: any) => {
       />
       <Tab.Screen
         name="SearchTab"
+        component={SearchStackNavigator}
         options={{
           tabBarLabel: 'Search',
           tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
         }}
-      >
-        {() => <PlaceholderScreen title="Search" message="Search functionality coming soon" />}
-      </Tab.Screen>
+      />
 
       <Tab.Screen
         name="SellTab"

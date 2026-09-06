@@ -79,14 +79,21 @@ export const BUNDLE_DETAILS: Record<BundleName, {
   starter: {
     label: 'Starter',
     description: 'Perfect for new sellers getting started',
-    includes: ['Trending — 1 Week', '5 Search Ads — 1 Month'],
+    includes: [
+      'Trending for 1 Week',
+      '5 Search Ads for 1 Month',
+    ],
     hasCarousel: false,
     isPremium: false,
   },
   grower: {
     label: 'Grower',
-    description: 'Most popular — best value for active sellers',
-    includes: ['Carousel Slot — 1 Month', 'Trending — 1 Month', '5 Search Ads'],
+    description: 'Most popular. Best value for active sellers',
+    includes: [
+      '1 Carousel Slot for 1 Month',
+      'Trending for 1 Month',
+      '5 Search Ads for 1 Month',
+    ],
     hasCarousel: true,
     isPremium: false,
     tag: 'Most Popular',
@@ -94,14 +101,25 @@ export const BUNDLE_DETAILS: Record<BundleName, {
   agri_pro: {
     label: 'Agri-Pro',
     description: 'For serious agro sellers who want maximum reach',
-    includes: ['Carousel Slot — 1 Month', 'Trending — 1 Month', '15 Search Ads', 'Verified Seller Badge'],
+    includes: [
+      '1 Carousel Slot for 1 Month',
+      'Trending for 1 Month',
+      '15 Search Ads for 1 Month',
+      'Verified Seller Badge',
+    ],
     hasCarousel: true,
     isPremium: true,
   },
   market_leader: {
     label: 'Market Leader',
-    description: 'Own the entire app — all 3 carousel slots',
-    includes: ['All 3 Carousel Slots — 1 Month', 'Trending — 1 Month', '30 Search Ads', 'Verified Seller Badge', 'Push Notification Blast'],
+    description: 'Own the entire app. All 3 carousel slots for 1 Month',
+    includes: [
+      'All 3 Carousel Slots for 1 Month',
+      'Trending for 1 Month',
+      '30 Search Ads for 1 Month',
+      'Verified Seller Badge',
+      '1 Push Notification Blast on activation',
+    ],
     hasCarousel: true,
     isPremium: true,
   },
