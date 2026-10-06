@@ -2,7 +2,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { LayoutDashboard, ListChecks, Image, Users, Clock } from 'lucide-react-native';
+import { LayoutDashboard, ListChecks, Image, Users, Clock, HelpCircle } from 'lucide-react-native';
 import { AdminDashboardScreen }      from '../screens/admin/AdminDashboardScreen';
 import { AdminQueueScreen }          from '../screens/admin/AdminQueueScreen';
 import { AdminCarouselScreen }       from '../screens/admin/AdminCarouselScreen';
@@ -10,6 +10,8 @@ import { AdminPromotionsScreen }     from '../screens/admin/AdminPromotionsScree
 import { AdminWaitlistScreen }       from '../screens/admin/AdminWaitlistScreen';
 import { AdminMarketLeaderScreen }   from '../screens/admin/AdminMarketLeaderScreen';
 import { useAuth }                   from '../providers/AuthProvider';
+import { AdminFAQsScreen }           from '../screens/admin/AdminFAQsScreen';
+
 
 const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -87,6 +89,14 @@ export const AdminNavigator = ({ navigation }: any) => {
         options={{
           tabBarLabel: 'Waitlist',
           tabBarIcon: ({ color, size }) => <Clock size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="FAQs"
+        component={AdminFAQsScreen}
+        options={{
+          tabBarLabel: 'FAQs',
+          tabBarIcon: ({ color, size }) => <HelpCircle size={size} color={color} />,
         }}
       />
     </Tab.Navigator>

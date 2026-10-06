@@ -7,6 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../../services/supabase';
 import { X, Upload, ImageOff } from 'lucide-react-native';
 
@@ -92,14 +93,23 @@ export const AdminCarouselScreen = () => {
 
     setUploading(true);
     try {
-      const filename = `announcement_${announcementModal}_${Date.now()}.jpg`;
-      const response = await fetch(annImage);
-      const blob     = await response.blob();
-      const arrayBuf = await blob.arrayBuffer();
+      const filename = `announcement_${Date.now()}.jpg`;
+
+      // Read image as base64 using expo-file-system
+      const base64 = await FileSystem.readAsStringAsync(annImage, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // Convert base64 to Uint8Array
+      const binaryString = atob(base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
 
       const { error: uploadError } = await supabase.storage
         .from('carousel-images')
-        .upload(filename, arrayBuf, { contentType: 'image/jpeg', upsert: true });
+        .upload(filename, bytes, { contentType: 'image/jpeg', upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -242,7 +252,7 @@ export const AdminCarouselScreen = () => {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Carousel Manager</Text>
-        <Text style={styles.headerSub}>3 slots total</Text>
+        <Text style={styles.headerSub}>5 slots total (2 standalone, 2 bundle, 1 announcement)</Text>
       </View>
 
       {loading ? (

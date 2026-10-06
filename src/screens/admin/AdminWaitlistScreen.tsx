@@ -70,16 +70,32 @@ export const AdminWaitlistScreen = () => {
     await fetchWaitlist();
   };
 
-  const contactWhatsApp = (phone: string, bundleName: string) => {
-    const msg = encodeURIComponent(
-      `Hi! A carousel slot just opened up on EmilyAgros. Your ${BUNDLE_LABELS[bundleName] ?? bundleName} bundle is now available. Tap here to subscribe: [link]`
-    );
+  const getContactPhone = (item: any) =>
+    item.contact_phone || item.seller?.phone_number || '';
+
+  const contactWhatsApp = (item: any) => {
+    const phone     = getContactPhone(item);
     const formatted = phone.replace(/^0/, '234');
+    const name      = item.seller?.full_name ?? 'there';
+    const bundle    = BUNDLE_LABELS[item.bundle_name] ?? item.bundle_name ?? 'bundle';
+    const msg       = encodeURIComponent(
+      `Hi ${name}! Great news. A carousel slot just opened up on EmilyAgros. Your ${bundle} bundle is now available. Go to your profile on the app to get started or reply to this message and we will set it up for you right away.`
+    );
     Linking.openURL(`https://wa.me/${formatted}?text=${msg}`);
   };
 
-  const contactCall = (phone: string) => {
-    Linking.openURL(`tel:${phone}`);
+  const contactCall = (item: any) => {
+    Linking.openURL(`tel:${getContactPhone(item)}`);
+  };
+
+  const contactSMS = (item: any) => {
+    const phone  = getContactPhone(item);
+    const name   = item.seller?.full_name ?? 'there';
+    const bundle = BUNDLE_LABELS[item.bundle_name] ?? item.bundle_name ?? 'bundle';
+    const msg    = encodeURIComponent(
+      `Hi ${name}! A carousel slot just opened on EmilyAgros. Your ${bundle} bundle is now available. Reply to this message to get started.`
+    );
+    Linking.openURL(`sms:${phone}?body=${msg}`);
   };
 
   const formatDate = (iso: string) =>
@@ -126,20 +142,40 @@ export const AdminWaitlistScreen = () => {
                 </View>
               </View>
 
-              <Text style={styles.waitingSince}>Waiting since {formatDate(item.created_at)}</Text>
+              <Text style={styles.waitingSince}>
+                Waiting since {formatDate(item.created_at)}
+              </Text>
+
+              {/* Contact info */}
+              <View style={styles.contactInfo}>
+                <Text style={styles.contactInfoText}>
+                  Prefers: {item.preferred_contact === 'whatsapp' ? 'WhatsApp' : item.preferred_contact === 'sms' ? 'SMS' : 'Call'}
+                </Text>
+                <Text style={styles.contactInfoText}>
+                  Number: {item.contact_phone || item.seller?.phone_number || 'Not provided'}
+                </Text>
+              </View>
 
               <View style={styles.actions}>
                 <TouchableOpacity
                   style={styles.waBtn}
-                  onPress={() => contactWhatsApp(item.seller?.phone_number ?? '', item.bundle_name ?? '')}
+                  onPress={() => contactWhatsApp(item)}
                 >
                   <MessageCircle size={16} color="#FFFFFF" />
                   <Text style={styles.waBtnText}>WhatsApp</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  style={styles.smsBtn}
+                  onPress={() => contactSMS(item)}
+                >
+                  <MessageCircle size={16} color="#1565C0" />
+                  <Text style={styles.smsBtnText}>SMS</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
                   style={styles.callBtn}
-                  onPress={() => contactCall(item.seller?.phone_number ?? '')}
+                  onPress={() => contactCall(item)}
                 >
                   <Phone size={16} color={GREEN} />
                   <Text style={styles.callBtnText}>Call</Text>
@@ -159,7 +195,6 @@ export const AdminWaitlistScreen = () => {
                   }}
                 >
                   <CheckCircle2 size={16} color={GRAY} />
-                  <Text style={styles.notifiedBtnText}>Notified</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -187,10 +222,13 @@ const styles = StyleSheet.create({
   bundleText:     { fontSize: 12, fontWeight: '700', color: GREEN },
   waitingSince:   { fontSize: 12, color: GRAY, marginBottom: 12 },
   actions:        { flexDirection: 'row', gap: 8 },
-  waBtn:          { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 38, borderRadius: 19, backgroundColor: '#075E54' },
-  waBtnText:      { color: '#FFFFFF', fontWeight: '600', fontSize: 13 },
-  callBtn:        { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: GREEN },
-  callBtnText:    { color: GREEN, fontWeight: '600', fontSize: 13 },
-  notifiedBtn:    { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: '#E5E7EB' },
-  notifiedBtnText:{ color: GRAY, fontWeight: '600', fontSize: 13 },
+  contactInfo:     { backgroundColor: '#F9FAFB', borderRadius: 8, padding: 8, marginBottom: 12, gap: 3 },
+  contactInfoText: { fontSize: 12, color: GRAY },
+  waBtn:           { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 38, borderRadius: 19, backgroundColor: '#075E54' },
+  waBtnText:       { color: '#FFFFFF', fontWeight: '600', fontSize: 12 },
+  smsBtn:          { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: '#1565C0' },
+  smsBtnText:      { color: '#1565C0', fontWeight: '600', fontSize: 12 },
+  callBtn:         { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: GREEN },
+  callBtnText:     { color: GREEN, fontWeight: '600', fontSize: 12 },
+  notifiedBtn:     { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#E5E7EB' },
 });

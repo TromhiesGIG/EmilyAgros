@@ -4,6 +4,13 @@ import { PromotionType, PlanDuration, BundleName, PromotionStatus } from '../typ
 
 export type HomeStackParamList = {
   Home: undefined;
+  FAQs: undefined;
+  About: undefined;
+  DeleteAccount: undefined;
+  SignInMethods: undefined;
+  UseCredits: { creditId?: string } | undefined;
+  HelpSupport: undefined;
+  TransactionHistory: undefined;
   AllCategories: undefined;
   Subcategories: {
     categoryId: number;

@@ -4,10 +4,10 @@ import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, FlatList,
   TouchableOpacity, ActivityIndicator, RefreshControl,
-  Modal, Linking, Alert,
+  Modal, Linking, Alert, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Wallet, X, MessageCircle, Phone } from 'lucide-react-native';
+import { ArrowLeft, Wallet, X, MessageCircle, Phone, Zap } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../providers/AuthProvider';
 import {
@@ -16,18 +16,19 @@ import {
   getMyPromotions,
   getWalletBalance,
   joinWaitlist,
+  getBundleCredits,
 } from '../../services/promotionService';
 import {
   PLAN_DURATION_LABELS,
   SellerPromotionSummary,
 } from '../../types/promotions';
 
-const GREEN        = '#008102';
-const GRAY         = '#6B7280';
-const ADMIN_PHONE  = '+2348168817063';
-const ADMIN_WA     = 'https://wa.me/2348168817063';
+const GREEN       = '#008102';
+const GRAY        = '#6B7280';
+const ADMIN_PHONE = '+2348168817063';
+const ADMIN_WA    = 'https://wa.me/2348168817063';
 
-type MainTab  = 'promote' | 'my_promotions';
+type MainTab  = 'promote' | 'boost' | 'my_promotions';
 type PromoTab = 'active' | 'pending' | 'expired';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -45,7 +46,7 @@ const TYPE_LABELS: Record<string, string> = {
   bundle:    'Bundle',
 };
 
-const INDIVIDUAL_CARDS = [
+const BOOST_CARDS = [
   {
     key:         'carousel',
     name:        'Carousel',
@@ -68,78 +69,89 @@ const INDIVIDUAL_CARDS = [
 
 const BUNDLE_CARDS = [
   {
-    key:         'starter',
-    name:        'Starter',
-    price:       '₦5,999',
-    duration:    '1 Month',
-    description: 'Trending for 1 Week + 5 Search Ads for 1 Month',
-    hasCarousel: false,
+    key:          'starter',
+    name:         'Starter',
+    price:        '₦5,999',
+    description:  'Trending for 1 Week + 5 Search Ads for 1 Month',
+    hasCarousel:  false,
     isEnterprise: false,
   },
   {
-    key:         'grower',
-    name:        'Grower',
-    price:       '₦17,999',
-    duration:    '1 Month',
-    description: '1 Carousel Slot for 1 Month + Trending for 1 Month + 5 Search Ads for 1 Month',
-    hasCarousel: true,
+    key:          'grower',
+    name:         'Grower',
+    price:        '₦17,999',
+    description:  '1 Carousel Slot for 1 Month + Trending for 1 Month + 5 Search Ads for 1 Month',
+    hasCarousel:  true,
     isEnterprise: false,
   },
   {
-    key:         'agri_pro',
-    name:        'Agri-Pro',
-    price:       '₦29,999',
-    duration:    '1 Month',
-    description: '1 Carousel Slot for 1 Month + Trending for 1 Month + 15 Search Ads for 1 Month + Verified Seller Badge',
-    hasCarousel: true,
+    key:          'agri_pro',
+    name:         'Agri-Pro',
+    price:        '₦29,999',
+    description:  '1 Carousel Slot for 1 Month + Trending for 1 Month + 15 Search Ads for 1 Month + Verified Seller Badge',
+    hasCarousel:  true,
     isEnterprise: false,
   },
   {
-    key:         'market_leader',
-    name:        'Market Leader',
-    price:       '₦59,999',
-    duration:    '1 Month',
-    description: 'All 3 Carousel Slots for 1 Month + Trending for 1 Month + 30 Search Ads for 1 Month + Verified Seller Badge + 1 Push Notification Blast',
-    hasCarousel: true,
+    key:          'market_leader',
+    name:         'Market Leader',
+    price:        '₦59,999',
+    description:  'All 3 Carousel Slots for 1 Month + Trending for 1 Month + 30 Search Ads for 1 Month + Verified Seller Badge + 1 Push Notification Blast',
+    hasCarousel:  true,
     isEnterprise: true,
   },
 ];
 
-export const SubscriptionsScreen = ({ navigation }: any) => {
-  const { user } = useAuth();
-  const [mainTab, setMainTab]                   = useState<MainTab>('promote');
-  const [promoTab, setPromoTab]                 = useState<PromoTab>('active');
-  const [walletBalance, setWallet]              = useState(0);
-  const [carouselAvailable, setCarousel]        = useState(true);
-  const [bundleCarouselAvailable, setBundleCarousel] = useState(true);
-  const [promotions, setPromotions]             = useState<SellerPromotionSummary[]>([]);
-  const [loading, setLoading]                   = useState(true);
-  const [refreshing, setRefreshing]             = useState(false);
+interface Props {
+  navigation: any;
+  route?: any;
+}
 
-  // Modals
-  const [waitlistModal, setWaitlistModal]       = useState<string | null>(null);
-  const [waitlistJoined, setWaitlistJoined]     = useState(false);
-  const [waitlistLoading, setWaitlistLoading]   = useState(false);
-  const [contactModal, setContactModal]         = useState(false);
+export const SubscriptionsScreen = ({ navigation, route }: Props) => {
+  const { user } = useAuth();
+
+  // If coming from MyAds Boost button, open on boost tab
+  const initialTab: MainTab = route?.params?.initialTab ?? 'promote';
+  const preselectedProductId: string | undefined = route?.params?.preselectedProductId;
+
+  const [mainTab, setMainTab]                        = useState<MainTab>(initialTab);
+  const [promoTab, setPromoTab]                      = useState<PromoTab>('active');
+  const [walletBalance, setWallet]                   = useState(0);
+  const [carouselAvailable, setCarousel]             = useState(true);
+  const [bundleCarouselAvailable, setBundleCarousel] = useState(true);
+  const [promotions, setPromotions]                  = useState<SellerPromotionSummary[]>([]);
+  const [bundleCredits, setBundleCredits]            = useState<any[]>([]);
+  const [loading, setLoading]                        = useState(true);
+  const [refreshing, setRefreshing]                  = useState(false);
+  const [waitlistModal, setWaitlistModal]            = useState<string | null>(null);
+  const [waitlistJoined, setWaitlistJoined]          = useState(false);
+  const [waitlistLoading, setWaitlistLoading]        = useState(false);
+  const [waitlistPhone, setWaitlistPhone]            = useState('');
+  const [waitlistContact, setWaitlistContact]        = useState<string[]>(['whatsapp']);
+  const [contactModal, setContactModal]              = useState(false);
 
   useFocusEffect(useCallback(() => {
+    // Update tab if route params change (e.g. from MyAds boost button)
+    if (route?.params?.initialTab) setMainTab(route.params.initialTab);
     fetchAll();
-  }, [user]));
+  }, [user, route?.params]));
 
   const fetchAll = async (isRefresh = false) => {
     if (!user) return;
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      const [bal, slots, bundleSlots, promos] = await Promise.all([
+      const [bal, slots, bundleSlots, promos, credits] = await Promise.all([
         getWalletBalance(user.id),
         isCarouselAvailable(),
         isBundleCarouselAvailable(),
         getMyPromotions(user.id),
+        getBundleCredits(user.id),
       ]);
       setWallet(bal);
       setCarousel(slots);
       setBundleCarousel(bundleSlots);
       setPromotions(promos);
+      setBundleCredits(credits);
     } catch (e) {
       console.error(e);
     } finally {
@@ -148,31 +160,35 @@ export const SubscriptionsScreen = ({ navigation }: any) => {
     }
   };
 
-  const handleCardPress = (key: string, bundleName?: string) => {
+  const handleBoostPress = (key: string) => {
     if (key === 'carousel' && !carouselAvailable) return;
     navigation.navigate('AdSelection', {
       promotionType: key,
-      bundleName:    bundleName ?? undefined,
+      preselectedProductId: preselectedProductId ?? undefined,
     });
   };
 
   const handleBundlePress = (bundle: typeof BUNDLE_CARDS[0]) => {
-    if (bundle.isEnterprise) {
-      setContactModal(true);
-      return;
-    }
+    if (bundle.isEnterprise) { setContactModal(true); return; }
     if (bundle.hasCarousel && !bundleCarouselAvailable) {
       setWaitlistModal(bundle.key);
       return;
     }
-    handleCardPress('bundle', bundle.key);
+    navigation.navigate('AdSelection', {
+      promotionType: 'bundle',
+      bundleName:    bundle.key,
+    });
   };
 
   const handleJoinWaitlist = async (bundleKey: string) => {
     if (!user) return;
+    if (!waitlistPhone.trim()) {
+      Alert.alert('Phone Required', 'Please enter a phone number so we can contact you.');
+      return;
+    }
     setWaitlistLoading(true);
     try {
-      await joinWaitlist(user.id, 'bundle', bundleKey);
+      await joinWaitlist(user.id, 'bundle', bundleKey, waitlistPhone.trim(), waitlistContact.join(','));
       setWaitlistJoined(true);
     } catch (e) {
       Alert.alert('Error', 'Could not join waitlist. Please try again.');
@@ -181,41 +197,52 @@ export const SubscriptionsScreen = ({ navigation }: any) => {
     }
   };
 
+  const resetWaitlist = () => {
+    setWaitlistModal(null);
+    setWaitlistJoined(false);
+    setWaitlistPhone('');
+    setWaitlistContact(['whatsapp']);
+  };
+
   const openWhatsApp = () => {
     const message = encodeURIComponent(
-      `Hi EmilyAgros! I'm interested in the Market Leader package. Please contact me to discuss.`
+      'Hi EmilyAgros! I am interested in the Market Leader package. Please contact me to discuss.'
     );
     Linking.openURL(`${ADMIN_WA}?text=${message}`);
   };
-
   const openCall = () => Linking.openURL(`tel:${ADMIN_PHONE}`);
   const openSMS  = () => {
-    const message = encodeURIComponent(
-      `Hi EmilyAgros! I'm interested in the Market Leader package.`
-    );
+    const message = encodeURIComponent('Hi EmilyAgros! I am interested in the Market Leader package.');
     Linking.openURL(`sms:${ADMIN_PHONE}?body=${message}`);
   };
 
-  // ── Promote Tab ──────────────────────────────────────────────────────────
-  const renderPromote = () => (
+  const totalCreditsRemaining = bundleCredits.reduce(
+    (sum: number, c: any) => sum + (c.remaining ?? 0), 0
+  );
+
+  // ── Boost Post Tab ───────────────────────────────────────────────────────
+  const renderBoost = () => (
     <ScrollView
       contentContainerStyle={styles.scroll}
       showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => fetchAll(true)} tintColor={GREEN} />
-      }
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchAll(true)} tintColor={GREEN} />}
     >
       <View style={styles.walletBar}>
         <Wallet size={16} color={GRAY} />
         <Text style={styles.walletText}>
-          Current wallet balance:{' '}
+          Wallet balance:{' '}
           <Text style={styles.walletValue}>₦{walletBalance.toLocaleString()}</Text>
         </Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Individual Promotions</Text>
+      {preselectedProductId && (
+        <View style={styles.preselectedBanner}>
+          <Zap size={14} color={GREEN} />
+          <Text style={styles.preselectedText}>Boosting your selected ad</Text>
+        </View>
+      )}
 
-      {INDIVIDUAL_CARDS.map(card => {
+      {BOOST_CARDS.map(card => {
         const isCarouselCard = card.key === 'carousel';
         const unavailable    = isCarouselCard && !carouselAvailable;
         return (
@@ -234,19 +261,36 @@ export const SubscriptionsScreen = ({ navigation }: any) => {
             <Text style={styles.planDesc}>{card.description}</Text>
             <TouchableOpacity
               style={[styles.subscribeBtn, unavailable && styles.subscribeBtnDisabled]}
-              onPress={() => handleCardPress(card.key)}
+              onPress={() => handleBoostPress(card.key)}
               disabled={unavailable}
             >
               <Text style={styles.subscribeBtnText}>
-                {unavailable ? 'Currently Unavailable' : 'Subscribe'}
+                {unavailable ? 'Currently Unavailable' : 'Boost Post'}
               </Text>
             </TouchableOpacity>
           </View>
         );
       })}
+      <View style={{ height: 40 }} />
+    </ScrollView>
+  );
+
+  // ── Promote Tab ──────────────────────────────────────────────────────────
+  const renderPromote = () => (
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchAll(true)} tintColor={GREEN} />}
+    >
+      <View style={styles.walletBar}>
+        <Wallet size={16} color={GRAY} />
+        <Text style={styles.walletText}>
+          Current wallet balance:{' '}
+          <Text style={styles.walletValue}>₦{walletBalance.toLocaleString()}</Text>
+        </Text>
+      </View>
 
       <Text style={styles.sectionTitle}>Bundles</Text>
-
       {BUNDLE_CARDS.map(bundle => {
         const slotsFullForBundle = bundle.hasCarousel && !bundle.isEnterprise && !bundleCarouselAvailable;
         return (
@@ -267,24 +311,16 @@ export const SubscriptionsScreen = ({ navigation }: any) => {
             <Text style={styles.planPrice}>{bundle.price}</Text>
             <Text style={styles.planDesc}>{bundle.description}</Text>
             <TouchableOpacity
-              style={[
-                styles.subscribeBtn,
-                bundle.isEnterprise && styles.enterpriseBtn,
-              ]}
+              style={[styles.subscribeBtn, bundle.isEnterprise && styles.enterpriseBtn]}
               onPress={() => handleBundlePress(bundle)}
             >
               <Text style={styles.subscribeBtnText}>
-                {bundle.isEnterprise
-                  ? 'Get in Touch'
-                  : slotsFullForBundle
-                  ? 'Join Waitlist'
-                  : 'Subscribe'}
+                {bundle.isEnterprise ? 'Get in Touch' : slotsFullForBundle ? 'Join Waitlist' : 'Subscribe'}
               </Text>
             </TouchableOpacity>
           </View>
         );
       })}
-
       <View style={{ height: 40 }} />
     </ScrollView>
   );
@@ -299,7 +335,7 @@ export const SubscriptionsScreen = ({ navigation }: any) => {
   const counts = {
     active:  promotions.filter(p => p.status === 'active').length,
     pending: promotions.filter(p => p.status === 'pending').length,
-    expired: promotions.filter(p => ['expired','rejected','cancelled'].includes(p.status)).length,
+    expired: promotions.filter(p => ['expired', 'rejected', 'cancelled'].includes(p.status)).length,
   };
 
   const formatDate = (iso: string | null) =>
@@ -309,6 +345,19 @@ export const SubscriptionsScreen = ({ navigation }: any) => {
 
   const renderMyPromotions = () => (
     <View style={{ flex: 1 }}>
+      {totalCreditsRemaining > 0 && (
+        <TouchableOpacity
+          style={styles.creditsBanner}
+          onPress={() => navigation.navigate('UseCredits')}
+        >
+          <Zap size={16} color={GREEN} />
+          <Text style={styles.creditsBannerText}>
+            You have {totalCreditsRemaining} Search Ad credit{totalCreditsRemaining !== 1 ? 's' : ''} available
+          </Text>
+          <Text style={styles.creditsBannerCta}>Use Now</Text>
+        </TouchableOpacity>
+      )}
+
       <View style={styles.subTabs}>
         {(['active', 'pending', 'expired'] as PromoTab[]).map(t => (
           <TouchableOpacity
@@ -335,7 +384,7 @@ export const SubscriptionsScreen = ({ navigation }: any) => {
               : 'Your past promotions will show here.'}
           </Text>
           {promoTab === 'active' && (
-            <TouchableOpacity style={styles.emptyBtn} onPress={() => setMainTab('promote')}>
+            <TouchableOpacity style={styles.emptyBtn} onPress={() => setMainTab('boost')}>
               <Text style={styles.emptyBtnText}>Boost an Ad</Text>
             </TouchableOpacity>
           )}
@@ -354,7 +403,7 @@ export const SubscriptionsScreen = ({ navigation }: any) => {
                 <View style={styles.promoTopRow}>
                   <Text style={styles.promoName}>
                     {TYPE_LABELS[item.promotion_type] ?? item.promotion_type}
-                    {item.bundle_name ? ` — ${item.bundle_name.replace(/_/g, ' ')}` : ''}
+                    {item.bundle_name ? ` (${item.bundle_name.replace(/_/g, ' ')})` : ''}
                   </Text>
                   <View style={[styles.statusBadge, { backgroundColor: cfg.bg }]}>
                     <Text style={[styles.statusText, { color: cfg.color }]}>{cfg.label}</Text>
@@ -375,7 +424,7 @@ export const SubscriptionsScreen = ({ navigation }: any) => {
                     style={styles.renewBtn}
                     onPress={() => navigation.navigate('AdSelection', {
                       promotionType: item.promotion_type,
-                      bundleName: item.bundle_name ?? undefined,
+                      bundleName:    item.bundle_name ?? undefined,
                       preselectedProductId: item.product_id,
                     })}
                   >
@@ -400,57 +449,92 @@ export const SubscriptionsScreen = ({ navigation }: any) => {
         <View style={{ width: 24 }} />
       </View>
 
+      {/* 3 tabs */}
       <View style={styles.mainTabs}>
-        <TouchableOpacity
-          style={[styles.mainTab, mainTab === 'promote' && styles.mainTabActive]}
-          onPress={() => setMainTab('promote')}
-        >
-          <Text style={[styles.mainTabText, mainTab === 'promote' && styles.mainTabTextActive]}>Promote</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.mainTab, mainTab === 'my_promotions' && styles.mainTabActive]}
-          onPress={() => setMainTab('my_promotions')}
-        >
-          <Text style={[styles.mainTabText, mainTab === 'my_promotions' && styles.mainTabTextActive]}>
-            My Promotions{promotions.length > 0 ? ` (${promotions.length})` : ''}
-          </Text>
-        </TouchableOpacity>
+        {([
+          { key: 'promote',       label: 'Bundles' },
+          { key: 'boost',         label: 'Boost Post' },
+          { key: 'my_promotions', label: 'My Promotions' },
+        ] as { key: MainTab; label: string }[]).map(t => (
+          <TouchableOpacity
+            key={t.key}
+            style={[styles.mainTab, mainTab === t.key && styles.mainTabActive]}
+            onPress={() => setMainTab(t.key)}
+          >
+            <Text style={[styles.mainTabText, mainTab === t.key && styles.mainTabTextActive]}>
+              {t.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {loading && mainTab === 'promote' ? (
+      {loading && mainTab !== 'my_promotions' ? (
         <ActivityIndicator size="large" color={GREEN} style={{ marginTop: 60 }} />
-      ) : mainTab === 'promote' ? renderPromote() : renderMyPromotions()}
+      ) : mainTab === 'promote' ? renderPromote()
+        : mainTab === 'boost' ? renderBoost()
+        : renderMyPromotions()}
 
-      {/* ── Waitlist Modal ── */}
+      {/* Waitlist Modal */}
       <Modal visible={!!waitlistModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() => { setWaitlistModal(null); setWaitlistJoined(false); }}
-            >
+            <TouchableOpacity style={styles.modalClose} onPress={resetWaitlist}>
               <X size={24} color="#111827" />
             </TouchableOpacity>
-
             {waitlistJoined ? (
               <>
-                <Text style={styles.modalTitle}>You're on the list! 🎉</Text>
+                <Text style={styles.modalTitle}>You are on the list!</Text>
                 <Text style={styles.modalDesc}>
-                  We'll notify you the moment a carousel slot opens up. You'll be first in line.
+                  We will reach out to you via {waitlistContact.map(c => c === 'whatsapp' ? 'WhatsApp' : c === 'sms' ? 'SMS' : 'Call').join(', ')} on {waitlistPhone} the moment a slot opens up.
                 </Text>
-                <TouchableOpacity
-                  style={styles.greenBtn}
-                  onPress={() => { setWaitlistModal(null); setWaitlistJoined(false); }}
-                >
+                <TouchableOpacity style={styles.greenBtn} onPress={resetWaitlist}>
                   <Text style={styles.greenBtnText}>Done</Text>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                <Text style={styles.modalTitle}>Carousel Slots Full 🎠</Text>
+                <Text style={styles.modalTitle}>Carousel Slots Full</Text>
                 <Text style={styles.modalDesc}>
-                  All carousel slots for bundles are currently reserved. Join the waitlist and we'll notify you the moment one opens up.
+                  All carousel slots for bundles are currently reserved. Join the waitlist and we will contact you the moment one opens up.
                 </Text>
+                <Text style={styles.inputLabel}>Your contact number</Text>
+                <View style={styles.phoneInput}>
+                  <Phone size={16} color={GRAY} />
+                  <TextInput
+                    style={styles.phoneInputText}
+                    placeholder="e.g. 08012345678"
+                    placeholderTextColor={GRAY}
+                    value={waitlistPhone}
+                    onChangeText={setWaitlistPhone}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+                <Text style={styles.inputLabel}>How should we reach you?</Text>
+                <Text style={styles.inputHint}>You can select more than one</Text>
+                <View style={styles.contactOptions}>
+                  {([
+                    { key: 'whatsapp', label: 'WhatsApp' },
+                    { key: 'sms',      label: 'SMS' },
+                    { key: 'call',     label: 'Call' },
+                  ]).map(opt => {
+                    const selected = waitlistContact.includes(opt.key);
+                    return (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[styles.contactOption, selected && styles.contactOptionSelected]}
+                        onPress={() => setWaitlistContact(prev =>
+                          prev.includes(opt.key)
+                            ? prev.filter(k => k !== opt.key)
+                            : [...prev, opt.key]
+                        )}
+                      >
+                        <Text style={[styles.contactOptionText, selected && { color: GREEN }]}>
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
                 <TouchableOpacity
                   style={[styles.greenBtn, waitlistLoading && { opacity: 0.6 }]}
                   onPress={() => waitlistModal && handleJoinWaitlist(waitlistModal)}
@@ -460,10 +544,7 @@ export const SubscriptionsScreen = ({ navigation }: any) => {
                     ? <ActivityIndicator color="#FFFFFF" />
                     : <Text style={styles.greenBtnText}>Join Waitlist — Free</Text>}
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.ghostBtn}
-                  onPress={() => setWaitlistModal(null)}
-                >
+                <TouchableOpacity style={styles.ghostBtn} onPress={resetWaitlist}>
                   <Text style={styles.ghostBtnText}>Maybe Later</Text>
                 </TouchableOpacity>
               </>
@@ -472,29 +553,25 @@ export const SubscriptionsScreen = ({ navigation }: any) => {
         </View>
       </Modal>
 
-      {/* ── Market Leader Contact Modal ── */}
+      {/* Market Leader Contact Modal */}
       <Modal visible={contactModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <TouchableOpacity style={styles.modalClose} onPress={() => setContactModal(false)}>
               <X size={24} color="#111827" />
             </TouchableOpacity>
-
-            <Text style={styles.modalTitle}>Get Market Leader 👑</Text>
+            <Text style={styles.modalTitle}>Get Market Leader</Text>
             <Text style={styles.modalDesc}>
-              Our team will set this up for you personally. Reach us instantly — we respond fast.
+              Our team will set this up for you personally. Reach us instantly and we respond fast.
             </Text>
-
             <TouchableOpacity style={styles.contactBtn} onPress={openWhatsApp}>
               <MessageCircle size={20} color="#FFFFFF" />
               <Text style={styles.contactBtnText}>WhatsApp Us</Text>
             </TouchableOpacity>
-
             <TouchableOpacity style={[styles.contactBtn, styles.callBtn]} onPress={openCall}>
               <Phone size={20} color={GREEN} />
               <Text style={[styles.contactBtnText, { color: GREEN }]}>Call Us</Text>
             </TouchableOpacity>
-
             <TouchableOpacity style={[styles.contactBtn, styles.smsBtn]} onPress={openSMS}>
               <MessageCircle size={20} color="#1565C0" />
               <Text style={[styles.contactBtnText, { color: '#1565C0' }]}>Send SMS</Text>
@@ -513,12 +590,14 @@ const styles = StyleSheet.create({
   mainTabs:             { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   mainTab:              { flex: 1, paddingVertical: 13, alignItems: 'center' },
   mainTabActive:        { borderBottomWidth: 3, borderBottomColor: GREEN },
-  mainTabText:          { fontSize: 15, color: GRAY, fontWeight: '500' },
+  mainTabText:          { fontSize: 13, color: GRAY, fontWeight: '500' },
   mainTabTextActive:    { color: GREEN, fontWeight: '700' },
   scroll:               { padding: 20 },
   walletBar:            { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 24, gap: 6 },
   walletText:           { fontSize: 14, color: '#4B5563' },
   walletValue:          { fontWeight: '700', color: '#111827' },
+  preselectedBanner:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F0FDF4', padding: 10, borderRadius: 8, marginBottom: 16, borderWidth: 1, borderColor: '#D1FAE5' },
+  preselectedText:      { fontSize: 13, color: GREEN, fontWeight: '600' },
   sectionTitle:         { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 16, marginTop: 8 },
   planCard:             { padding: 20, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 16, backgroundColor: '#FFFFFF' },
   planCardDisabled:     { opacity: 0.5 },
@@ -536,6 +615,9 @@ const styles = StyleSheet.create({
   subscribeBtnDisabled: { backgroundColor: '#9CA3AF' },
   subscribeBtnText:     { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   enterpriseBtn:        { backgroundColor: '#92400E' },
+  creditsBanner:        { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F0FDF4', margin: 16, marginBottom: 0, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#D1FAE5' },
+  creditsBannerText:    { flex: 1, fontSize: 13, color: '#111827', fontWeight: '500' },
+  creditsBannerCta:     { fontSize: 13, fontWeight: '700', color: GREEN },
   subTabs:              { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   subTab:               { flex: 1, paddingVertical: 12, alignItems: 'center' },
   subTabActive:         { borderBottomWidth: 3, borderBottomColor: GREEN },
@@ -558,12 +640,19 @@ const styles = StyleSheet.create({
   promoViews:           { fontSize: 13, color: GRAY },
   renewBtn:             { marginTop: 12, height: 40, borderWidth: 1.5, borderColor: GREEN, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   renewBtnText:         { color: GREEN, fontWeight: '700', fontSize: 14 },
-  // Modals
   modalOverlay:         { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
   modalContent:         { backgroundColor: '#FFFFFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 44 },
   modalClose:           { alignSelf: 'flex-end', marginBottom: 8 },
   modalTitle:           { fontSize: 22, fontWeight: '700', color: '#111827', marginBottom: 10 },
   modalDesc:            { fontSize: 14, color: GRAY, lineHeight: 22, marginBottom: 24 },
+  inputLabel:           { fontSize: 13, fontWeight: '600', color: '#111827', marginBottom: 4 },
+  inputHint:            { fontSize: 12, color: GRAY, marginBottom: 8 },
+  phoneInput:           { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: '#E5E7EB', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16 },
+  phoneInputText:       { flex: 1, fontSize: 15, color: '#111827' },
+  contactOptions:       { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  contactOption:        { flex: 1, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5, borderColor: '#E5E7EB', alignItems: 'center' },
+  contactOptionSelected:{ borderColor: GREEN, backgroundColor: '#F0FDF4' },
+  contactOptionText:    { fontSize: 13, fontWeight: '600', color: '#111827' },
   greenBtn:             { height: 52, backgroundColor: GREEN, borderRadius: 26, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   greenBtnText:         { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },
   ghostBtn:             { height: 52, backgroundColor: '#F9FAFB', borderRadius: 26, justifyContent: 'center', alignItems: 'center' },

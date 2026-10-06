@@ -62,7 +62,10 @@ export const MyAdsScreen = ({ navigation }: any) => {
             // ⚡ Boost button — opens promotion flow pre-selecting this ad
             <TouchableOpacity
               style={styles.boostButton}
-              onPress={() => navigation.navigate('PromotionType', { productId: item.id })}
+                onPress={() => navigation.navigate('Subscriptions', {
+                  initialTab: 'boost',
+                  preselectedProductId: item.id,
+                })}
             >
               <Text style={styles.boostButtonText}>⚡ Boost</Text>
             </TouchableOpacity>

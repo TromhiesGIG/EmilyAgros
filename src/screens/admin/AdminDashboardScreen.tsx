@@ -113,7 +113,7 @@ export const AdminDashboardScreen = ({ navigation }: any) => {
           {/* Active promotions */}
           <Text style={styles.sectionTitle}>Active Promotions</Text>
           <View style={styles.row}>
-            <StatCard label="Carousel Slots" value={`${stats.activeCarousel}/3`} />
+            <StatCard label="Carousel Slots" value={`${stats.activeCarousel}/5`} />
             <StatCard label="Trending"        value={stats.activeTrending} />
           </View>
           <View style={styles.row}>

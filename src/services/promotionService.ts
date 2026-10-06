@@ -12,6 +12,14 @@ import {
   PLAN_DURATION_DAYS,
 } from '../types/promotions';
 
+// Search ad credits per bundle
+const BUNDLE_SEARCH_AD_CREDITS: Record<string, number> = {
+  starter:       5,
+  grower:        5,
+  agri_pro:      15,
+  market_leader: 30,
+};
+
 /** Fetch all carousel slots */
 export async function getCarouselSlots(): Promise<CarouselSlot[]> {
   const { data, error } = await supabase
@@ -26,7 +34,6 @@ export async function getCarouselSlots(): Promise<CarouselSlot[]> {
 export async function isCarouselAvailable(): Promise<boolean> {
   const { data, error } = await supabase.rpc('is_standalone_carousel_available');
   if (error) {
-    // Fallback to direct query if RPC fails
     const { data: slots } = await supabase
       .from('carousel_slots')
       .select('id')
@@ -69,9 +76,10 @@ export async function getSellerActiveAds(sellerId: string) {
 export async function joinWaitlist(
   sellerId: string,
   promotionType: 'carousel' | 'bundle',
-  bundleName?: string
+  bundleName?: string,
+  contactPhone?: string,
+  preferredContact?: string
 ): Promise<void> {
-  // Check if already on waitlist
   const { data: existing } = await supabase
     .from('promotion_waitlist')
     .select('id')
@@ -80,14 +88,83 @@ export async function joinWaitlist(
     .eq('status', 'waiting')
     .maybeSingle();
 
-  if (existing) return; // Already on waitlist
+  if (existing) return;
 
   await supabase.from('promotion_waitlist').insert({
-    seller_id:      sellerId,
-    promotion_type: promotionType,
-    bundle_name:    bundleName ?? null,
-    status:         'waiting',
+    seller_id:         sellerId,
+    promotion_type:    promotionType,
+    bundle_name:       bundleName ?? null,
+    status:            'waiting',
+    contact_phone:     contactPhone ?? null,
+    preferred_contact: preferredContact ?? 'whatsapp',
   });
+}
+
+/** Fetch seller's bundle credits */
+export async function getBundleCredits(sellerId: string) {
+  const { data, error } = await supabase
+    .from('bundle_credits')
+    .select('*')
+    .eq('seller_id', sellerId)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((c: any) => ({
+    ...c,
+    remaining: c.total_credits - c.used_credits,
+  }));
+}
+
+/** Use one search ad credit to promote an ad */
+export async function useSearchAdCredit(
+  creditId: string,
+  sellerId: string,
+  productId: string,
+  expiresAt: string
+): Promise<void> {
+  // 1. Get the credit
+  const { data: credit, error: creditError } = await supabase
+    .from('bundle_credits')
+    .select('*')
+    .eq('id', creditId)
+    .eq('seller_id', sellerId)
+    .single();
+
+  if (creditError || !credit) throw new Error('Credit not found');
+  if (credit.used_credits >= credit.total_credits) throw new Error('NO_CREDITS_REMAINING');
+
+  // 2. Check no active search_ad for this product already
+  const { data: existing } = await supabase
+    .from('promotions')
+    .select('id')
+    .eq('seller_id', sellerId)
+    .eq('product_id', productId)
+    .eq('promotion_type', 'search_ad')
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (existing) throw new Error('ALREADY_ACTIVE');
+
+  // 3. Create search_ad promotion (free — paid through bundle)
+  const now = new Date();
+  await supabase.from('promotions').insert({
+    seller_id:      sellerId,
+    product_id:     productId,
+    promotion_type: 'search_ad',
+    plan_duration:  '1_month',
+    status:         'active',
+    payment_method: 'wallet',
+    amount_paid:    0, // covered by bundle
+    starts_at:      now.toISOString(),
+    expires_at:     expiresAt, // same expiry as the bundle credit
+  });
+
+  // 4. Deduct credit
+  await supabase
+    .from('bundle_credits')
+    .update({ used_credits: credit.used_credits + 1 })
+    .eq('id', creditId);
 }
 
 interface CreatePromotionParams {
@@ -108,9 +185,10 @@ export async function createPromotion(params: CreatePromotionParams): Promise<Pr
   } = params;
 
   const needsApproval = promotionType === 'carousel' ||
-    (promotionType === 'bundle' && (bundleName === 'agri_pro' || bundleName === 'market_leader' || bundleName === 'grower'));
+    (promotionType === 'bundle' &&
+      (bundleName === 'agri_pro' || bundleName === 'market_leader' || bundleName === 'grower'));
 
-  const now = new Date();
+  const now       = new Date();
   const expiresAt = new Date(now);
   expiresAt.setDate(expiresAt.getDate() + PLAN_DURATION_DAYS[planDuration]);
 
@@ -135,6 +213,7 @@ export async function createPromotion(params: CreatePromotionParams): Promise<Pr
   if (error) throw error;
   const promotion = data as Promotion;
 
+  // Add to admin queue if needs approval
   if (needsApproval) {
     await supabase.from('admin_queue').insert({
       promotion_id: promotion.id,
@@ -142,6 +221,54 @@ export async function createPromotion(params: CreatePromotionParams): Promise<Pr
       product_id:   productId,
       status:       'pending',
     });
+  }
+
+  // If bundle — auto-create search ad credits
+  if (promotionType === 'bundle' && bundleName) {
+    const creditCount = BUNDLE_SEARCH_AD_CREDITS[bundleName] ?? 0;
+    if (creditCount > 0) {
+      await supabase.from('bundle_credits').insert({
+        seller_id:     sellerId,
+        bundle_name:   bundleName,
+        promotion_id:  promotion.id,
+        credit_type:   'search_ad',
+        total_credits: creditCount,
+        used_credits:  0,
+        expires_at:    expiresAt.toISOString(),
+      });
+    }
+
+    // Auto-activate Trending for starter bundle (no carousel needed)
+    if (bundleName === 'starter') {
+      const trendingExpiry = new Date(now);
+      trendingExpiry.setDate(trendingExpiry.getDate() + 7); // 1 week trending
+      await supabase.from('promotions').insert({
+        seller_id:      sellerId,
+        product_id:     productId,
+        promotion_type: 'trending',
+        plan_duration:  '1_week',
+        status:         'active',
+        payment_method: paymentMethod,
+        amount_paid:    0, // covered by bundle
+        starts_at:      now.toISOString(),
+        expires_at:     trendingExpiry.toISOString(),
+      });
+    }
+
+    // Auto-activate Trending for Grower, Agri-Pro, Market Leader (1 month)
+    if (['grower', 'agri_pro', 'market_leader'].includes(bundleName)) {
+      await supabase.from('promotions').insert({
+        seller_id:      sellerId,
+        product_id:     productId,
+        promotion_type: 'trending',
+        plan_duration:  '1_month',
+        status:         'active',
+        payment_method: paymentMethod,
+        amount_paid:    0, // covered by bundle
+        starts_at:      now.toISOString(),
+        expires_at:     expiresAt.toISOString(),
+      });
+    }
   }
 
   return promotion;
@@ -152,7 +279,7 @@ export async function payWithWalletAndPromote(
 ): Promise<Promotion> {
   const { sellerId, productId, promotionType, amountPaid } = params;
 
-  // 1. Check for existing active promotion for same ad + type
+  // 1. Check for duplicate
   const { data: existing } = await supabase
     .from('promotions')
     .select('id')
@@ -164,7 +291,7 @@ export async function payWithWalletAndPromote(
 
   if (existing) throw new Error('ALREADY_ACTIVE');
 
-  // 2. Check wallet balance
+  // 2. Check wallet
   const { data: profile, error: walletError } = await supabase
     .from('profiles')
     .select('wallet_balance')
@@ -184,7 +311,7 @@ export async function payWithWalletAndPromote(
 
   if (deductError) throw deductError;
 
-  // 4. Create promotion
+  // 4. Create promotion (credits + trending auto-activated inside)
   return createPromotion({ ...params, paymentMethod: 'wallet' });
 }
 

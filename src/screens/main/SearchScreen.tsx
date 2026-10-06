@@ -1,18 +1,19 @@
 // src/screens/main/SearchScreen.tsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, TextInput, Image, Dimensions,
+  ActivityIndicator, TextInput, Image, Dimensions, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, X, ArrowUpRight, Zap } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../providers/AuthProvider';
 
-const GREEN        = '#008102';
-const GRAY         = '#6B7280';
-const { width }    = Dimensions.get('window');
-const CARD_WIDTH   = (width - 48) / 2;
+const GREEN      = '#008102';
+const GRAY       = '#6B7280';
+const { width }  = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 2;
 
 interface SponsoredAd {
   promotion_id: string;
@@ -27,22 +28,22 @@ interface SponsoredAd {
 }
 
 export const SearchScreen = ({ navigation }: any) => {
-  const { user }                                    = useAuth();
-  const [query, setQuery]                           = useState('');
-  const [suggestions, setSuggestions]               = useState<string[]>([]);
-  const [sponsoredAds, setSponsoredAds]             = useState<SponsoredAd[]>([]);
-  const [searchHistory, setSearchHistory]           = useState<string[]>([]);
-  const [topSearches, setTopSearches]               = useState<string[]>([]);
-  const [loadingSponsored, setLoadingSponsored]     = useState(true);
-  const [loadingTop, setLoadingTop]                 = useState(true);
-  const [isFocused, setIsFocused]                   = useState(false);
-  const inputRef                                    = useRef<TextInput>(null);
+  const { user }                                = useAuth();
+  const [query, setQuery]                       = useState('');
+  const [suggestions, setSuggestions]           = useState<string[]>([]);
+  const [sponsoredAds, setSponsoredAds]         = useState<SponsoredAd[]>([]);
+  const [searchHistory, setSearchHistory]       = useState<string[]>([]);
+  const [topSearches, setTopSearches]           = useState<string[]>([]);
+  const [loadingSponsored, setLoadingSponsored] = useState(true);
+  const [loadingTop, setLoadingTop]             = useState(true);
+  const [isFocused, setIsFocused]               = useState(false);
+  const inputRef                                = useRef<TextInput>(null);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     fetchSponsoredAds();
     fetchTopSearches();
     fetchSearchHistory();
-  }, []);
+  }, [user]));
 
   const fetchSponsoredAds = async () => {
     try {
@@ -91,7 +92,6 @@ export const SearchScreen = ({ navigation }: any) => {
 
       if (!data) { setTopSearches([]); return; }
 
-      // Aggregate and sort by frequency
       const counts: Record<string, number> = {};
       data.forEach((row: any) => {
         const q = row.query.toLowerCase().trim();
@@ -121,7 +121,7 @@ export const SearchScreen = ({ navigation }: any) => {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      const unique = [...new Set((data ?? []).map((r: any) => r.query))];
+      const unique = [...new Set((data ?? []).map((r: any) => r.query as string))];
       setSearchHistory(unique);
     } catch (e) {
       console.error(e);
@@ -131,8 +131,6 @@ export const SearchScreen = ({ navigation }: any) => {
   const handleChangeText = async (text: string) => {
     setQuery(text);
     if (!text.trim()) { setSuggestions([]); return; }
-
-    // Fetch autocomplete suggestions from product titles
     try {
       const { data } = await supabase
         .from('products')
@@ -164,13 +162,16 @@ export const SearchScreen = ({ navigation }: any) => {
 
   const isTyping = query.trim().length > 0;
 
-  // ── Sponsored ad grid card ──────────────────────────────────────────────
-  const SponsoredCard = ({ item }: { item: SponsoredAd }) => {
+  // ── Sponsored ad grid card ───────────────────────────────────────────────
+  const renderSponsoredCard = ({ item }: { item: SponsoredAd }) => {
     const imageUri = item.product.images?.[0];
     return (
       <TouchableOpacity
         style={styles.gridCard}
-        onPress={() => navigation.navigate('HomeTab', { screen: 'AdDetails', params: { adId: item.product_id } })}
+        onPress={() => navigation.navigate('HomeTab', {
+          screen: 'AdDetails',
+          params: { adId: item.product_id },
+        })}
         activeOpacity={0.85}
       >
         <View style={styles.gridImageWrap}>
@@ -241,32 +242,78 @@ export const SearchScreen = ({ navigation }: any) => {
 
       {/* Main content — shown when not typing */}
       {!isTyping && (
-        <FlatList
-          data={[]}
-          renderItem={null}
-          showsVerticalScrollIndicator={false}
-          keyExtractor={() => 'empty'}
-          ListHeaderComponent={
-            <>
-              {/* Sponsored grid */}
-              {loadingSponsored ? (
-                <ActivityIndicator color={GREEN} style={{ marginTop: 24 }} />
-              ) : sponsoredAds.length > 0 ? (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Sponsored</Text>
-                  <View style={styles.grid}>
-                    {sponsoredAds.map(ad => (
-                      <SponsoredCard key={ad.promotion_id} item={ad} />
-                    ))}
+        <>
+          {/* Sponsored ads — 2 column grid using FlatList */}
+          {loadingSponsored ? (
+            <ActivityIndicator color={GREEN} style={{ marginTop: 24 }} />
+          ) : sponsoredAds.length > 0 ? (
+            <FlatList
+              data={sponsoredAds}
+              keyExtractor={item => item.promotion_id}
+              numColumns={2}
+              columnWrapperStyle={styles.gridRow}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
+              ListHeaderComponent={
+                <>
+                  <Text style={styles.sectionLabel}>Sponsored</Text>
+                </>
+              }
+              ListFooterComponent={
+                <>
+                  {/* Search history */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionLabel}>Your Search History</Text>
+                    {searchHistory.length > 0 ? (
+                      searchHistory.map((h, i) => (
+                        <TouchableOpacity
+                          key={i}
+                          style={styles.historyRow}
+                          onPress={() => submitSearch(h)}
+                        >
+                          <Search size={14} color={GRAY} />
+                          <Text style={styles.historyText}>{h}</Text>
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      <Text style={styles.emptyHistoryText}>
+                        You don't have any searches yet.{'\n'}You will find all your searches here
+                      </Text>
+                    )}
                   </View>
-                </View>
-              ) : null}
 
-              {/* Search history */}
-              {searchHistory.length > 0 && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Your Search History</Text>
-                  {searchHistory.map((h, i) => (
+                  {/* Top searches */}
+                  <View style={styles.section}>
+                    <Text style={styles.sectionLabel}>Top Searches Right Now</Text>
+                    {loadingTop ? (
+                      <ActivityIndicator color={GREEN} />
+                    ) : topSearches.length > 0 ? (
+                      <View style={styles.chipsWrap}>
+                        {topSearches.map((t, i) => (
+                          <TouchableOpacity
+                            key={i}
+                            style={styles.chip}
+                            onPress={() => submitSearch(t)}
+                          >
+                            <Text style={styles.chipText}>{t}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    ) : (
+                      <Text style={styles.emptyHistoryText}>No top searches yet.</Text>
+                    )}
+                  </View>
+                </>
+              }
+              renderItem={renderSponsoredCard}
+            />
+          ) : (
+            // No sponsored ads — just show history and top searches
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>Your Search History</Text>
+                {searchHistory.length > 0 ? (
+                  searchHistory.map((h, i) => (
                     <TouchableOpacity
                       key={i}
                       style={styles.historyRow}
@@ -275,22 +322,16 @@ export const SearchScreen = ({ navigation }: any) => {
                       <Search size={14} color={GRAY} />
                       <Text style={styles.historyText}>{h}</Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-
-              {searchHistory.length === 0 && !loadingSponsored && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Your Search History</Text>
+                  ))
+                ) : (
                   <Text style={styles.emptyHistoryText}>
                     You don't have any searches yet.{'\n'}You will find all your searches here
                   </Text>
-                </View>
-              )}
+                )}
+              </View>
 
-              {/* Top searches */}
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Top Searches Right Now</Text>
+                <Text style={styles.sectionLabel}>Top Searches Right Now</Text>
                 {loadingTop ? (
                   <ActivityIndicator color={GREEN} />
                 ) : topSearches.length > 0 ? (
@@ -309,9 +350,9 @@ export const SearchScreen = ({ navigation }: any) => {
                   <Text style={styles.emptyHistoryText}>No top searches yet.</Text>
                 )}
               </View>
-            </>
-          }
-        />
+            </ScrollView>
+          )}
+        </>
       )}
     </SafeAreaView>
   );
@@ -328,9 +369,9 @@ const styles = StyleSheet.create({
   suggestionsBox:     { backgroundColor: '#FFFFFF', marginHorizontal: 16, borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', overflow: 'hidden' },
   suggestionRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   suggestionText:     { fontSize: 15, color: '#111827', flex: 1, marginRight: 8 },
-  section:            { backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 12, borderRadius: 14, padding: 16 },
-  sectionTitle:       { fontSize: 13, fontWeight: '600', color: GRAY, marginBottom: 12 },
-  grid:               { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  listContent:        { padding: 16 },
+  sectionLabel:       { fontSize: 13, fontWeight: '600', color: GRAY, marginBottom: 12 },
+  gridRow:            { justifyContent: 'space-between', marginBottom: 12 },
   gridCard:           { width: CARD_WIDTH, borderRadius: 12, overflow: 'hidden', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB' },
   gridImageWrap:      { position: 'relative' },
   gridImage:          { width: '100%', height: CARD_WIDTH * 0.8 },
@@ -340,6 +381,7 @@ const styles = StyleSheet.create({
   gridTitle:          { fontSize: 13, fontWeight: '600', color: '#111827', marginBottom: 3, lineHeight: 17 },
   gridPrice:          { fontSize: 13, fontWeight: '700', color: GREEN, marginBottom: 2 },
   gridLocation:       { fontSize: 11, color: GRAY },
+  section:            { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 12, marginTop: 12 },
   historyRow:         { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F9FAFB' },
   historyText:        { fontSize: 14, color: '#374151' },
   emptyHistoryText:   { fontSize: 14, color: GRAY, lineHeight: 22, textAlign: 'center', paddingVertical: 8 },
