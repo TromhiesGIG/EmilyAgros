@@ -2,7 +2,8 @@
 import React, { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Alert, Image, TextInput, Modal,
+  ActivityIndicator, RefreshControl, Alert, Image, TextInput,
+  Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,21 +16,20 @@ const GREEN = '#008102';
 const GRAY  = '#6B7280';
 
 export const AdminCarouselScreen = () => {
-  const [slots, setSlots]           = useState<any[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [uploading, setUploading]   = useState(false);
+  const [slots, setSlots]                         = useState<any[]>([]);
+  const [loading, setLoading]                     = useState(true);
+  const [refreshing, setRefreshing]               = useState(false);
+  const [uploading, setUploading]                 = useState(false);
   const [announcementModal, setAnnouncementModal] = useState<string | null>(null);
-  const [annImage, setAnnImage]   = useState<string | null>(null);
-  const [annTitle, setAnnTitle]   = useState('');
-  const [annLink, setAnnLink]     = useState('');
+  const [annImage, setAnnImage]                   = useState<string | null>(null);
+  const [annTitle, setAnnTitle]                   = useState('');
+  const [annLink, setAnnLink]                     = useState('');
 
   useFocusEffect(useCallback(() => { fetchSlots(); }, []));
 
   const fetchSlots = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
-      // Step 1: fetch slots
       const { data: slotsData, error } = await supabase
         .from('carousel_slots')
         .select('*')
@@ -38,7 +38,6 @@ export const AdminCarouselScreen = () => {
       if (error) throw error;
       if (!slotsData) { setSlots([]); return; }
 
-      // Step 2: fetch related products and sellers separately
       const productIds = slotsData.filter(s => s.product_id).map(s => s.product_id);
       const sellerIds  = slotsData.filter(s => s.seller_id).map(s => s.seller_id);
 
@@ -57,13 +56,11 @@ export const AdminCarouselScreen = () => {
       const sellerMap: Record<string, any> = {};
       (sellersRes.data ?? []).forEach((s: any) => { sellerMap[s.id] = s; });
 
-      const enriched = slotsData.map(slot => ({
+      setSlots(slotsData.map(slot => ({
         ...slot,
         product: slot.product_id ? productMap[slot.product_id] : null,
         seller:  slot.seller_id  ? sellerMap[slot.seller_id]  : null,
-      }));
-
-      setSlots(enriched);
+      })));
     } catch (e) {
       console.error('Fetch slots error:', e);
     } finally {
@@ -86,23 +83,16 @@ export const AdminCarouselScreen = () => {
 
   const uploadAnnouncement = async () => {
     if (!announcementModal) return;
-    if (!annImage) {
-      Alert.alert('Image Required', 'Please select an image.');
-      return;
-    }
+    if (!annImage) { Alert.alert('Image Required', 'Please select an image.'); return; }
 
     setUploading(true);
     try {
       const filename = `announcement_${Date.now()}.jpg`;
-
-      // Read image as base64 using expo-file-system
-      const base64 = await FileSystem.readAsStringAsync(annImage, {
+      const base64   = await FileSystem.readAsStringAsync(annImage, {
         encoding: FileSystem.EncodingType.Base64,
       });
-
-      // Convert base64 to Uint8Array
       const binaryString = atob(base64);
-      const bytes = new Uint8Array(binaryString.length);
+      const bytes        = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
@@ -140,6 +130,13 @@ export const AdminCarouselScreen = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const closeModal = () => {
+    setAnnouncementModal(null);
+    setAnnImage(null);
+    setAnnTitle('');
+    setAnnLink('');
   };
 
   const clearSlot = async (slot: any) => {
@@ -214,7 +211,9 @@ export const AdminCarouselScreen = () => {
             <Text style={styles.infoSub}>By {slot.seller?.full_name ?? 'Unknown'}</Text>
             {slot.expires_at && (
               <Text style={styles.infoSub}>
-                Expires {new Date(slot.expires_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                Expires {new Date(slot.expires_at).toLocaleDateString('en-NG', {
+                  day: 'numeric', month: 'short', year: 'numeric',
+                })}
               </Text>
             )}
           </View>
@@ -261,33 +260,38 @@ export const AdminCarouselScreen = () => {
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchSlots(true)} tintColor={GREEN} />}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => fetchSlots(true)} tintColor={GREEN} />
+          }
         >
           {slots.map(slot => <SlotCard key={slot.id} slot={slot} />)}
         </ScrollView>
       )}
 
+      {/* Announcement Modal — wrapped in KeyboardAvoidingView */}
       <Modal visible={announcementModal !== null} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalTitle}>Post Announcement</Text>
-              <TouchableOpacity onPress={() => { setAnnouncementModal(null); setAnnImage(null); setAnnTitle(''); setAnnLink(''); }}>
+              <TouchableOpacity onPress={closeModal}>
                 <X size={24} color="#111827" />
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-              {annImage
-                ? <Image source={{ uri: annImage }} style={styles.pickedImage} resizeMode="cover" />
-                : (
-                  <View style={styles.imagePickerEmpty}>
-                    <Upload size={28} color={GRAY} />
-                    <Text style={styles.imagePickerText}>Tap to select image</Text>
-                    <Text style={styles.imagePickerHint}>16:9 ratio recommended</Text>
-                  </View>
-                )
-              }
+              {annImage ? (
+                <Image source={{ uri: annImage }} style={styles.pickedImage} resizeMode="cover" />
+              ) : (
+                <View style={styles.imagePickerEmpty}>
+                  <Upload size={28} color={GRAY} />
+                  <Text style={styles.imagePickerText}>Tap to select image</Text>
+                  <Text style={styles.imagePickerHint}>16:9 ratio recommended</Text>
+                </View>
+              )}
             </TouchableOpacity>
 
             <TextInput
@@ -296,6 +300,7 @@ export const AdminCarouselScreen = () => {
               placeholderTextColor={GRAY}
               value={annTitle}
               onChangeText={setAnnTitle}
+              returnKeyType="next"
             />
             <TextInput
               style={styles.input}
@@ -305,6 +310,7 @@ export const AdminCarouselScreen = () => {
               onChangeText={setAnnLink}
               autoCapitalize="none"
               keyboardType="url"
+              returnKeyType="done"
             />
 
             <TouchableOpacity
@@ -314,10 +320,11 @@ export const AdminCarouselScreen = () => {
             >
               {uploading
                 ? <ActivityIndicator color="#FFFFFF" />
-                : <Text style={styles.publishBtnText}>Publish to Carousel</Text>}
+                : <Text style={styles.publishBtnText}>Publish to Carousel</Text>
+              }
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

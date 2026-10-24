@@ -1,4 +1,3 @@
-// src/screens/main/MyWalletScreen.tsx
 import React from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
@@ -39,8 +38,8 @@ export const MyWalletScreen = ({ navigation }: any) => {
               <Text style={styles.methodText}>{item.method}</Text>
             </View>
           </View>
-          <Text style={[styles.amount, { color: credit ? GREEN : '#DC2626' }]}>
-            {credit ? '+' : ''}₦{Math.abs(item.amount).toLocaleString()}
+          <Text style={[styles.amount, { color: item.status === 'Failed' ? GRAY : credit ? GREEN : '#DC2626' }]}>
+            {item.status === 'Failed' ? '* ' : credit ? '+ ' : '- '}₦{Math.abs(item.amount).toLocaleString()}
           </Text>
         </View>
         <View style={styles.transRow}>

@@ -412,7 +412,7 @@ export const AdDetailsScreen = ({ route, navigation }: any) => {
       const chatId = [user.id, ad.user_id, adId].sort().join('_');
 
       const { error } = await supabase.from('messages').insert({
-        chat_id: chatId,
+        // chat_id: chatId,
         sender_id: user.id,
         receiver_id: ad.user_id,
         ad_id: adId,
@@ -464,7 +464,7 @@ export const AdDetailsScreen = ({ route, navigation }: any) => {
     const chatId = [user.id, ad.user_id, adId].sort().join('_');
 
     navigation.navigate('ChatDetail', {
-      chatId: chatId,
+      receiverId: ad.user_id,
       sellerName: seller?.full_name || ad.contact_name || 'Seller',
       adTitle: ad.title,
       adPrice: ad.price,

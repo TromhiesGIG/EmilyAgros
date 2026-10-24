@@ -95,19 +95,21 @@ export const CATEGORIES: Category[] = [
     subcategories: []
   },
   { 
-    id: 14, 
-    name: 'Agro Loan', 
-    slug: 'agro-loan', 
-    icon: require('../../assets/loan.png'), 
-    subcategories: []
-  },
-  { 
-    id: 15, 
-    name: 'Agro Insurance', 
-    slug: 'agro-insurance', 
-    icon: require('../../assets/insurance.png'), 
-    subcategories: []
-  },
+  id: 14, 
+  name: 'Agro Loan', 
+  slug: 'agro-loan', 
+  icon: require('../../assets/loan.png'), 
+  subcategories: [],
+  comingSoon: true, 
+},
+{ 
+  id: 15, 
+  name: 'Agro Insurance', 
+  slug: 'agro-insurance', 
+  icon: require('../../assets/insurance.png'), 
+  subcategories: [],
+  comingSoon: true, 
+},
 ];
 
 // Subcategories per category

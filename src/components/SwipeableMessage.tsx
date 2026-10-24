@@ -1,6 +1,5 @@
 // src/components/SwipeableMessage.tsx
 import React from 'react';
-import { StyleSheet } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -21,26 +20,22 @@ export const SwipeableMessage: React.FC<SwipeableMessageProps> = ({
   onSwipeReply,
   isMe,
 }) => {
-  const translateX = useSharedValue(0);
+  const translateX  = useSharedValue(0);
   const iconOpacity = useSharedValue(0);
 
   const panGesture = Gesture.Pan()
-    .activeOffsetX(isMe ? [-20, 20] : [20, -20]) // Increased from 10 to 20 - less sensitive
-    .failOffsetY([-10, 10]) // Add vertical threshold - allows scrolling
+    .activeOffsetX(isMe ? [-20, 20] : [20, -20])
+    .failOffsetY([-10, 10])
     .onUpdate((event) => {
       const maxSwipe = 60;
       if (isMe) {
-        // Swipe left for "me" messages
         translateX.value = Math.max(Math.min(event.translationX, 0), -maxSwipe);
       } else {
-        // Swipe right for "their" messages
         translateX.value = Math.min(Math.max(event.translationX, 0), maxSwipe);
       }
       iconOpacity.value = Math.abs(translateX.value) / maxSwipe;
-      console.log('🔄 Swipe:', { translateX: translateX.value, isMe });
     })
     .onEnd(() => {
-      console.log('✅ Swipe ended:', { distance: Math.abs(translateX.value) });
       if (Math.abs(translateX.value) > 40) {
         runOnJS(onSwipeReply)();
       }
@@ -54,36 +49,21 @@ export const SwipeableMessage: React.FC<SwipeableMessageProps> = ({
 
   const iconStyle = useAnimatedStyle(() => ({
     opacity: iconOpacity.value,
-  }));
-
-  return (
-    <GestureDetector gesture={panGesture}>
-      <Animated.View style={styles.container}>
-        <Animated.View style={[styles.replyIcon, iconStyle, isMe ? styles.iconLeft : styles.iconRight]}>
-          <Reply size={20} color="#6B7280" />
-        </Animated.View>
-        <Animated.View style={animatedStyle}>
-          {children}
-        </Animated.View>
-      </Animated.View>
-    </GestureDetector>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-  },
-  replyIcon: {
     position: 'absolute',
     top: '50%',
     marginTop: -10,
     zIndex: -1,
-  },
-  iconLeft: {
-    left: 10,
-  },
-  iconRight: {
-    right: 10,
-  },
-});
+    ...(isMe ? { left: -28 } : { right: -28 }),
+  }));
+
+  return (
+    <GestureDetector gesture={panGesture}>
+      <Animated.View style={animatedStyle}>
+        <Animated.View style={iconStyle}>
+          <Reply size={20} color="#6B7280" />
+        </Animated.View>
+        {children}
+      </Animated.View>
+    </GestureDetector>
+  );
+};

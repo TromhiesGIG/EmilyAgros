@@ -1,36 +1,58 @@
 // src/components/VoiceMessage.tsx
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
 import { Play, Pause } from 'lucide-react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
 interface VoiceMessageProps {
-  audioUrl: string;
-  duration?: number;
-  isMe: boolean;
+  audioUrl:       string;
+  duration?:      number;
+  isMe:           boolean;
   deliveryStatus?: string;
-  timestamp?: string;
-  onLongPress?: (event: any) => void;
+  timestamp?:     string;
+  onLongPress?:   (event: any) => void;
+  // Fix 2: props for single-player management
+  isActive:       boolean;
+  onPlay:         (url: string) => void;
+  onStop:         () => void;
 }
 
 export const VoiceMessage: React.FC<VoiceMessageProps> = ({
-  audioUrl, duration, isMe, deliveryStatus, timestamp, onLongPress,
+  audioUrl, duration, isMe, deliveryStatus, timestamp,
+  onLongPress, isActive, onPlay, onStop,
 }) => {
   const player = useAudioPlayer({ uri: audioUrl });
   const status = useAudioPlayerStatus(player);
 
-  const isPlaying  = status.playing;
-  const position   = status.currentTime * 1000; // convert to ms
-  const isLoading  = !status.isLoaded;
+  const isPlaying = status.playing;
+  const position  = status.currentTime * 1000;
+  const isLoading = !status.isLoaded;
+
+  // Fix 2: if another voice note starts playing, pause this one
+  useEffect(() => {
+    if (!isActive && isPlaying) {
+      player.pause();
+    }
+  }, [isActive, isPlaying]);
+
+  // When this finishes playing, notify parent
+  useEffect(() => {
+    if (status.didJustFinish) {
+      onStop();
+    }
+  }, [status.didJustFinish]);
 
   const playPause = async () => {
     try {
       if (isPlaying) {
         player.pause();
+        onStop();
       } else {
         if (status.didJustFinish || status.currentTime >= (status.duration ?? 0)) {
           player.seekTo(0);
         }
+        // Tell parent this one is now playing — all others will stop
+        onPlay(audioUrl);
         player.play();
       }
     } catch (error) {

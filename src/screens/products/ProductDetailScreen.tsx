@@ -180,7 +180,7 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
       const chatRoom = [user.id, product.user_id, productId].sort().join('_');
       
       const { error } = await supabase.from('messages').insert({
-        chat_room: chatRoom,
+        // chat_room: chatRoom,
         sender_id: user.id,
         receiver_id: product.user_id,
         ad_id: productId,
@@ -212,9 +212,11 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
     
     navigation.navigate('ChatDetail', {
       receiverId: product.user_id,
-      receiverName: product.profiles?.full_name || 'Seller',
-      receiverAvatar: product.profiles?.avatar_url,
+      sellerName: product.profiles?.full_name || 'Seller',
       adId: productId,
+      adTitle: product.title,
+      adPrice: product.price,
+      adImage: product.images?.[0] || '',
     });
   };
 

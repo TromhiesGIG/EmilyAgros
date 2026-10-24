@@ -43,11 +43,14 @@ export type HomeStackParamList = {
   LeaveReview: { sellerId: string; sellerName: string };
   // Chat
   ChatDetail: {
-    receiverId: string;
-    receiverName: string;
-    receiverAvatar?: string;
-    adId?: string;
-  };
+  receiverId: string;
+  sellerName?: string;
+  adId?: string;
+  adTitle?: string;
+  adPrice?: number;
+  adImage?: string;
+  phoneNumber?: string;
+};
   // Financial
   MyWallet: undefined;
   WalletRecharge: undefined;
@@ -148,6 +151,7 @@ export interface Category {
   slug: string;
   icon: any;
   subcategories?: SubCategory[];
+  comingSoon?: boolean;
   adCount?: number;
 }
 
