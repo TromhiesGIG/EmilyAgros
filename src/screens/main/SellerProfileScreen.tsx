@@ -227,7 +227,11 @@ export const SellerProfileScreen = ({ route, navigation }: any) => {
       return;
     }
 
-    navigation.navigate('MessagesInbox');
+        navigation.navigate('ChatDetail', {
+          receiverId: sellerId,
+          sellerName: seller?.full_name || 'Seller',
+          phoneNumber: seller?.phone_number,
+    });
   };
 
   const handleLeaveReview = () => {

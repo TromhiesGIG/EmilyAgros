@@ -1,4 +1,3 @@
-// src/screens/main/MessagesInbox.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
@@ -52,11 +51,13 @@ export const MessagesInbox = ({ navigation }: any) => {
 
       // Fetch hidden chats for this user
       const { data: hiddenChats } = await supabase
-        .from('hidden_chats')
-        .select('other_user_id')
-        .eq('user_id', user.id);
+      .from('hidden_chats')
+      .select('other_user_id, hidden_at')
+      .eq('user_id', user.id);
 
-      const hiddenIds = new Set((hiddenChats || []).map((h: any) => h.other_user_id));
+      const hiddenAt = new Map<string, number>(
+        (hiddenChats || []).map((h: any) => [h.other_user_id, new Date(h.hidden_at).getTime()])
+      );
 
       // Group by other_user_id only — one conversation per seller
       const convMap = new Map<string, any>();
@@ -64,8 +65,8 @@ export const MessagesInbox = ({ navigation }: any) => {
         const otherUserId = msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
 
         // Skip hidden chats
-        if (hiddenIds.has(otherUserId)) return;
-
+        const cutoff = hiddenAt.get(otherUserId);
+        if (cutoff && new Date(msg.created_at).getTime() <= cutoff) return;
         if (!convMap.has(otherUserId)) {
           convMap.set(otherUserId, {
             otherUserId,
@@ -135,7 +136,12 @@ export const MessagesInbox = ({ navigation }: any) => {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [fetchConversations, user]);
-
+    useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchConversations();
+    });
+    return unsubscribe;
+  }, [navigation, fetchConversations]);
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchConversations();
@@ -155,7 +161,7 @@ export const MessagesInbox = ({ navigation }: any) => {
               user_id:       user?.id,
               other_user_id: otherUserId,
               hidden_at:     new Date().toISOString(),
-            });
+            }, { onConflict: 'user_id,other_user_id' });
             setConversations(prev => prev.filter(c => c.other_user_id !== otherUserId));
           },
         },

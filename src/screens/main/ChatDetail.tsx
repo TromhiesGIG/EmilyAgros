@@ -114,7 +114,17 @@ export const ChatDetail = ({ route, navigation }: any) => {
         .or(`and(sender_id.eq.${user.id},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${user.id})`)
         .order('created_at', { ascending: true });
       if (error) { setLoading(false); return; }
-      setMessages(data || []);
+      const { data: hidden } = await supabase
+      .from('hidden_chats')
+      .select('hidden_at')
+      .eq('user_id', user.id)
+      .eq('other_user_id', receiverId)
+      .maybeSingle();
+
+    const visible = hidden?.hidden_at
+      ? (data || []).filter((m: any) => new Date(m.created_at) > new Date(hidden.hidden_at))
+      : (data || []);
+      setMessages(visible);
       const unreadIds = (data || []).filter((m: any) => m.receiver_id === user.id && !m.is_read).map((m: any) => m.id);
       if (unreadIds.length > 0) {
         const now = new Date().toISOString();
@@ -332,8 +342,8 @@ export const ChatDetail = ({ route, navigation }: any) => {
       { text: 'Delete', style: 'destructive', onPress: async () => {
         const { error } = await supabase.from('hidden_chats').upsert({
           user_id: user?.id, other_user_id: receiverId, hidden_at: new Date().toISOString(),
-        });
-        if (error) { Alert.alert('Error', 'Could not delete chat.'); return; }
+        }, { onConflict: 'user_id,other_user_id' });
+        if (error) { Alert.alert('Error', error.message); return; }
         navigation.goBack();
       }},
     ]);

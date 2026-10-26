@@ -39,7 +39,21 @@ export const Carousel: React.FC<Props> = ({ onAdPress }) => {
   const [activeSlide, setActiveSlide] = useState(0);
   const scrollViewRef                 = useRef<ScrollView>(null);
 
-  useEffect(() => { fetchCarouselSlots(); }, []);
+    useEffect(() => {
+    fetchCarouselSlots();
+
+    // Reload the carousel whenever a slot is added, changed or cleared
+    const channel = supabase
+      .channel('carousel-slots-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'carousel_slots' },
+        () => { fetchCarouselSlots(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const fetchCarouselSlots = async () => {
     try {

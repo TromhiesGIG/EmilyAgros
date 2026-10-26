@@ -1,5 +1,5 @@
 // src/screens/main/AdDetailsScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,8 @@ import {
   Linking,
   Platform,
   Share,
+  Keyboard,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { 
   ArrowLeft, 
@@ -38,6 +40,7 @@ import {
 } from 'lucide-react-native';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../providers/AuthProvider';
+import type { ScrollViewInstance } from 'react-native';
 
 interface Product {
   id: string;
@@ -107,6 +110,8 @@ export const AdDetailsScreen = ({ route, navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [chatPreviewVisible, setChatPreviewVisible] = useState(false);
+ const messagesScrollRef = useRef<ScrollViewInstance>(null);
+ const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [customMessage, setCustomMessage] = useState('');
   const [sellerLastSeen, setSellerLastSeen] = useState<string>('');
@@ -251,18 +256,44 @@ export const AdDetailsScreen = ({ route, navigation }: any) => {
     }
   };
 
-  const fetchMessages = async (sellerId: string) => {
+  useEffect(() => {
+  if (chatPreviewVisible) {
+    setTimeout(() => messagesScrollRef.current?.scrollToEnd({ animated: false }), 100);
+  }
+}, [chatPreviewVisible, messages]);
+useEffect(() => {
+  const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+  const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+  const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+  const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+  return () => {
+    showSub.remove();
+    hideSub.remove();
+  };
+}, []);
+    const fetchMessages = async (sellerId: string) => {
     try {
-      // ✅ FIXED: Using chat_id instead of chat_room
-      const chatId = [user!.id, sellerId, adId].sort().join('_');
+      // When did this user deleted the chat with this seller (if ever)?
+      const { data: hidden } = await supabase
+        .from('hidden_chats')
+        .select('hidden_at')
+        .eq('user_id', user!.id)
+        .eq('other_user_id', sellerId)
+        .maybeSingle();
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('messages')
         .select('*')
-        .eq('chat_id', chatId)
+        .or(`and(sender_id.eq.${user!.id},receiver_id.eq.${sellerId}),and(sender_id.eq.${sellerId},receiver_id.eq.${user!.id})`)
         .order('created_at', { ascending: false })
         .limit(10);
 
+      // Only show messages newer than the deletion time
+      if (hidden?.hidden_at) {
+        query = query.gt('created_at', hidden.hidden_at);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       setMessages(data?.reverse() || []);
     } catch (error) {
@@ -393,14 +424,41 @@ export const AdDetailsScreen = ({ route, navigation }: any) => {
     );
   };
 
-  const handleQuickMessage = async (message: string) => {
-    setChatPreviewVisible(true);
-    await sendMessage(message);
+    // Checks shared by chips and "Start chatting"
+  const canMessage = () => {
+    if (!ad) return false;
+    if (!user) {
+      Alert.alert('Sign In', 'Please log in to message the seller.');
+      return false;
+    }
+    if (user.id === ad.user_id) {
+      Alert.alert('Notification', 'This is your own advertisement.');
+      return false;
+    }
+    return true;
   };
 
+  // Opens the popup with text pre-filled. Nothing is sent here.
+  const openChatPreview = (prefill: string) => {
+    if (!canMessage()) return;
+    setCustomMessage(prefill);
+    fetchMessages(ad!.user_id);
+    setChatPreviewVisible(true);
+  };
+
+  // Chip tapped: on the page it opens the popup, inside the popup it fills the input
+  const handleQuickMessage = (message: string) => {
+    if (chatPreviewVisible) {
+      setCustomMessage(message);
+      return;
+    }
+    openChatPreview(message);
+  };
+
+  // Green send button in the popup: the only place a message is sent
   const handleCustomMessage = async () => {
     if (!customMessage.trim()) return;
-    await sendMessage(customMessage);
+    await sendMessage(customMessage.trim());
     setCustomMessage('');
   };
 
@@ -450,27 +508,8 @@ export const AdDetailsScreen = ({ route, navigation }: any) => {
     }
   };
 
-  const handleStartChatting = () => {
-    if (!ad) return;
-    if (!user) {
-      Alert.alert('Sign In', 'Please log in to message the seller.');
-      return;
-    }
-    if (user.id === ad.user_id) {
-      Alert.alert('Notification', 'This is your own advertisement.');
-      return;
-    }
-
-    const chatId = [user.id, ad.user_id, adId].sort().join('_');
-
-    navigation.navigate('ChatDetail', {
-      receiverId: ad.user_id,
-      sellerName: seller?.full_name || ad.contact_name || 'Seller',
-      adTitle: ad.title,
-      adPrice: ad.price,
-      adImage: ad.images?.[0] || '',
-      phoneNumber: seller?.phone_number || ad.contact_phone,
-    });
+    const handleStartChatting = () => {
+    openChatPreview(customMessage);
   };
 
   const checkIfSaved = async () => {
@@ -1041,10 +1080,15 @@ export const AdDetailsScreen = ({ route, navigation }: any) => {
         animationType="slide"
         onRequestClose={() => setChatPreviewVisible(false)}
       >
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
         <Pressable 
           style={styles.modalOverlay} 
           onPress={() => setChatPreviewVisible(false)}
         >
+          
           <Pressable 
             style={styles.chatPreviewModal} 
             onPress={(e) => e.stopPropagation()}
@@ -1077,7 +1121,12 @@ export const AdDetailsScreen = ({ route, navigation }: any) => {
             </View>
 
             {/* Messages */}
-            <ScrollView style={styles.chatMessages}>
+            <ScrollView
+                  ref={messagesScrollRef}
+                  style={styles.chatMessages}
+                  contentContainerStyle={{ paddingBottom: 12 }}
+                  keyboardShouldPersistTaps="handled"
+                >
               {messages.length > 0 ? (
                 <>
                   {messages.map((item) => (
@@ -1121,7 +1170,14 @@ export const AdDetailsScreen = ({ route, navigation }: any) => {
             </ScrollView>
 
             {/* Quick chips in modal */}
-            <View style={styles.quickMessagesModal}>
+          {!keyboardVisible && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ flexGrow: 0 }}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}
+              keyboardShouldPersistTaps="handled"
+            >
               {QUICK_MESSAGES.map((msg, index) => (
                 <TouchableOpacity
                   key={index}
@@ -1131,7 +1187,9 @@ export const AdDetailsScreen = ({ route, navigation }: any) => {
                   <Text style={styles.quickChipTextModal}>{msg}</Text>
                 </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
+
+          )}
 
             {/* Input */}
             <View style={styles.chatInputContainer}>
@@ -1154,6 +1212,8 @@ export const AdDetailsScreen = ({ route, navigation }: any) => {
             </View>
           </Pressable>
         </Pressable>
+      </KeyboardAvoidingView> 
+        
       </Modal>
 
       {/* Action Menu Modal */}

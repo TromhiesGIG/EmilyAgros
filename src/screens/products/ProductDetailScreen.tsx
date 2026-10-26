@@ -113,14 +113,12 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
     }
   };
 
-  const fetchMessages = async (sellerId: string) => {
+    const fetchMessages = async (sellerId: string) => {
     try {
-      const chatRoom = [user!.id, sellerId, productId].sort().join('_');
-      
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('chat_room', chatRoom)
+        .or(`and(sender_id.eq.${user!.id},receiver_id.eq.${sellerId}),and(sender_id.eq.${sellerId},receiver_id.eq.${user!.id})`)
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -177,7 +175,7 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
     if (!product || !user) return;
 
     try {
-      const chatRoom = [user.id, product.user_id, productId].sort().join('_');
+      // const chatRoom = [user.id, product.user_id, productId].sort().join('_');
       
       const { error } = await supabase.from('messages').insert({
         // chat_room: chatRoom,
